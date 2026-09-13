@@ -329,6 +329,15 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const [sortMode, setSortMode] = useState("custom"); // urgency | value | name | custom — default is manual drag order, grouped by periodicity
   const [showFees, setShowFees] = useState(false);
   const [showCapturedDetail, setShowCapturedDetail] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const toggleCategoryDetail = (id) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [view, setView] = useState("ledger"); // "ledger" | "history"
   const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
   const [viewDate, setViewDate] = useState(null); // null = live/today; otherwise editing that past period
@@ -838,26 +847,51 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         </div>
         {showCapturedDetail && (
           <div style={S.capturedDetailList}>
-            <div style={{ ...S.statBreakdown, marginBottom: 12 }}>
-              {CATEGORIES.map((c) => (
-                <span key={c.id}>{c.label} {fmtMoneyPlain(stats.capturedByCategory[c.id])}</span>
-              ))}
-            </div>
-            {stats.capturedByBenefit.map(({ benefit, total }) => {
-              const card = cards.find((c) => c.id === benefit.cardId);
+            {CATEGORIES.map((c) => {
+              const entries = stats.capturedByBenefit.filter((e) => e.benefit.category === c.id);
+              const isOpen = expandedCategories.has(c.id);
               return (
-                <div key={benefit.id} style={S.capturedDetailRow}>
-                  <div style={S.historyMain}>
-                    <span style={S.rowName}>{benefit.name}</span>
-                    {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
-                    {isAllSelected && card && (
-                      <span style={S.cardBadge}>
-                        <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
-                        {card.name}
-                      </span>
-                    )}
+                <div key={c.id}>
+                  <div
+                    className="lg-historyrow"
+                    style={{ ...S.capturedDetailRow, cursor: "pointer" }}
+                    onClick={() => toggleCategoryDetail(c.id)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <ChevronDown
+                        size={14}
+                        style={{ color: S.colors.muted, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s ease", flexShrink: 0 }}
+                      />
+                      <span style={S.rowName}>{c.label}</span>
+                    </div>
+                    <div style={S.historyValue}>{fmtMoneyWhole(stats.capturedByCategory[c.id])}</div>
                   </div>
-                  <div style={S.historyValue}>{fmtMoneyWhole(total)}</div>
+                  {isOpen && (
+                    entries.length === 0 ? (
+                      <div style={{ ...S.capturedDetailRow, paddingLeft: 22, color: S.colors.muted, fontSize: 13 }}>
+                        Nothing captured in this category yet.
+                      </div>
+                    ) : (
+                      entries.map(({ benefit, total }) => {
+                        const card = cards.find((cc) => cc.id === benefit.cardId);
+                        return (
+                          <div key={benefit.id} style={{ ...S.capturedDetailRow, paddingLeft: 22 }}>
+                            <div style={S.historyMain}>
+                              <span style={S.rowName}>{benefit.name}</span>
+                              {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
+                              {isAllSelected && card && (
+                                <span style={S.cardBadge}>
+                                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
+                                  {card.name}
+                                </span>
+                              )}
+                            </div>
+                            <div style={S.historyValue}>{fmtMoneyWhole(total)}</div>
+                          </div>
+                        );
+                      })
+                    )
+                  )}
                 </div>
               );
             })}
