@@ -1545,10 +1545,6 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
             <span style={{ ...S.rowName, textDecoration: visuallyDone ? "line-through" : "none", color: visuallyDone ? S.colors.muted : S.colors.text }}>
               {benefit.name}
             </span>
-            {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
-            {benefit.category && (
-              <span style={S.categoryTag}>{CATEGORIES.find((c) => c.id === benefit.category)?.label || benefit.category}</span>
-            )}
             {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
             {showCard && card && (
               <span style={S.cardBadge}>
