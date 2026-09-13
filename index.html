@@ -632,7 +632,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     const cardScopedBenefitsById = Object.fromEntries(cardScopedBenefits.map((b) => [b.id, b]));
     let capturedThisYear = 0;
     let remainingPotential = 0;
-    const remainingByPeriodicity = { monthly: 0, quarterly: 0, semiannual: 0, annual: 0 };
     const capturedByBenefitMap = {};
     // Category totals ignore the category filter itself (always all 5), scoped only by
     // card selection, so they're a side-by-side comparison regardless of which chip is active.
@@ -686,12 +685,11 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
       const remainingForYear = currentRemaining + futurePeriods * cap;
       remainingPotential += remainingForYear;
-      if (remainingByPeriodicity[b.periodicity] !== undefined) remainingByPeriodicity[b.periodicity] += remainingForYear;
     });
 
     const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
     const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
-    return { capturedThisYear, remainingPotential, remainingByPeriodicity, capturedByBenefit, capturedByCategory, totalAnnualFees };
+    return { capturedThisYear, remainingPotential, capturedByBenefit, capturedByCategory, totalAnnualFees };
   }, [usage, benefits, cards, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   const historyYears = useMemo(() => {
@@ -905,14 +903,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           <Stat
             label="Total possible remaining credit"
             value={fmtMoney(stats.remainingPotential)}
-            sub={
-              <div style={S.statBreakdown}>
-                <span>mo {fmtMoneyPlain(stats.remainingByPeriodicity.monthly)}</span>
-                <span>qtr {fmtMoneyPlain(stats.remainingByPeriodicity.quarterly)}</span>
-                <span>half {fmtMoneyPlain(stats.remainingByPeriodicity.semiannual)}</span>
-                <span>yr {fmtMoneyPlain(stats.remainingByPeriodicity.annual)}</span>
-              </div>
-            }
+            sub={cardScopeLabel}
             accent={S.colors.amber}
           />
         </div>
@@ -2008,7 +1999,6 @@ const S = {
   statLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 8 },
   statValue: { fontSize: 22, fontFamily: fonts.mono, fontWeight: 500 },
   statSub: { fontSize: 11, color: colors.muted, marginTop: 4 },
-  statBreakdown: { display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10.5, color: colors.muted, marginTop: 4, fontFamily: fonts.mono },
   backupBtn: { width: 32, height: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: colors.muted, cursor: "pointer" },
   walletRow: { display: "flex", gap: 10, overflowX: "auto", overflowY: "visible", paddingTop: 18, paddingBottom: 10, marginBottom: 8, alignItems: "flex-start" },
   categoryRow: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 },
