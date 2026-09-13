@@ -184,7 +184,7 @@ function buildDefaultSeed() {
     cards.push({ id: cardId, name: t.name, issuer: t.issuer, annualFee: t.annualFee, color: DEFAULT_CARD_COLORS[t.name] || PALETTE[i % PALETTE.length] });
     t.benefits.forEach((b) => benefits.push({ id: uid(), cardId, ...b }));
   });
-  return { cards, benefits, usage: {} };
+  return { cards, benefits, usage: {}, ledgerName: "Card Benefits Ledger" };
 }
 
 function fmtMoney(n) {
@@ -322,15 +322,8 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const [view, setView] = useState("ledger"); // "ledger" | "history"
   const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
   const [viewDate, setViewDate] = useState(null); // null = live/today; otherwise editing that past period
-  const [codeMenuOpen, setCodeMenuOpen] = useState(false);
-  const [copyFeedback, setCopyFeedback] = useState(false);
-
-  useEffect(() => {
-    if (!codeMenuOpen) return;
-    const closeIt = () => setCodeMenuOpen(false);
-    document.addEventListener("click", closeIt);
-    return () => document.removeEventListener("click", closeIt);
-  }, [codeMenuOpen]);
+  const [ledgerName, setLedgerName] = useState("Willis Family Card Benefits Ledger");
+  const [showSettings, setShowSettings] = useState(false);
 
   // Live shared data: subscribes to this instance's Firestore document and mirrors it
   // into local state; every write below re-sends the full {cards, benefits, usage}
@@ -342,6 +335,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         setCards(data.cards || []);
         setBenefits(data.benefits || []);
         setUsage(data.usage || {});
+        setLedgerName(data.ledgerName || "Willis Family Card Benefits Ledger");
         setLoaded(true);
       },
       () => {
@@ -368,13 +362,15 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         cards: updates.cards ?? cards,
         benefits: updates.benefits ?? benefits,
         usage: updates.usage ?? usage,
+        ledgerName: updates.ledgerName ?? ledgerName,
       };
       if (updates.cards) setCards(updates.cards);
       if (updates.benefits) setBenefits(updates.benefits);
       if (updates.usage) setUsage(updates.usage);
+      if (updates.ledgerName !== undefined) setLedgerName(updates.ledgerName);
       persist(next);
     },
-    [cards, benefits, usage, persist]
+    [cards, benefits, usage, ledgerName, persist]
   );
 
   const fileInputRef = useRef(null);
@@ -382,7 +378,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const [importError, setImportError] = useState(null);
 
   const handleExport = () => {
-    const payload = { cards, benefits, usage, exportedAt: new Date().toISOString() };
+    const payload = { cards, benefits, usage, ledgerName, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -406,7 +402,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           return;
         }
         setImportError(null);
-        setPendingImport({ cards: parsed.cards, benefits: parsed.benefits, usage: parsed.usage || {} });
+        setPendingImport({ cards: parsed.cards, benefits: parsed.benefits, usage: parsed.usage || {}, ledgerName: parsed.ledgerName || ledgerName });
       } catch (err) {
         setImportError("Couldn't read that file — make sure it's a backup exported from this ledger.");
       }
@@ -730,13 +726,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     ? ` · ${selectedCards[0].name}`
     : ` · ${selectedCards.length} cards selected`;
 
-  const copyCode = () => {
-    navigator.clipboard?.writeText(ledgerCode).then(() => {
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 1500);
-    });
-  };
-
   return (
     <div style={S.root}>
       <style>{CSS_TEXT}</style>
@@ -749,7 +738,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
       <div style={S.header}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-          <h1 style={S.h1}>Willis Family Card Benefits Ledger</h1>
+          <h1 style={S.h1}>{ledgerName}</h1>
           <span style={{ fontFamily: S.fonts.mono, fontSize: 12, color: S.colors.gold, letterSpacing: "0.04em" }}>PURRKFECTION</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -762,22 +751,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
             style={{ display: "none" }}
             onChange={handleImportFile}
           />
-          <div style={{ position: "relative" }}>
-            <button type="button" className="lg-chip" style={S.chip} onClick={() => setCodeMenuOpen((v) => !v)} title="Ledger access">
-              {userLabel ? userLabel.split(" ")[0] : "Account"}
-            </button>
-            {codeMenuOpen && (
-              <div style={S.codeMenu} onClick={(e) => e.stopPropagation()}>
-                <div style={S.codeMenuLabel}>Ledger code</div>
-                <div style={S.codeMenuCode} onClick={copyCode} title="Click to copy">
-                  {ledgerCode} {copyFeedback ? "✓ copied" : ""}
-                </div>
-                <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll sign in with Google and enter it.</div>
-                <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%", marginTop: 10 }} onClick={onSwitchLedger}>Use a different ledger</button>
-                <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%", marginTop: 8 }} onClick={onSignOut}>Sign out</button>
-              </div>
-            )}
-          </div>
           <button
             type="button"
             className="lg-chip"
@@ -794,15 +767,16 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           >
             {showFees ? "Hide annual fees" : "Compare to annual fees"}
           </button>
-          <div style={S.backupGroup}>
-            <button type="button" className="lg-backupbtn" style={S.backupBtn} onClick={handleExport} aria-label="Export a backup" title="Export a backup">
-              <Download size={14} />
-            </button>
-            <div style={S.backupDivider} />
-            <button type="button" className="lg-backupbtn" style={S.backupBtn} onClick={() => fileInputRef.current?.click()} aria-label="Import a backup" title="Import a backup">
-              <Upload size={14} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="lg-backupbtn"
+            style={{ ...S.backupBtn, width: 32, height: 32, background: S.colors.surface, border: `1px solid ${S.colors.border}`, borderRadius: 8 }}
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <Settings size={16} />
+          </button>
         </div>
       </div>
 
@@ -1165,6 +1139,20 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           </div>
         </Modal>
       )}
+
+      {showSettings && (
+        <SettingsModal
+          ledgerName={ledgerName}
+          onRenameSave={(name) => commit({ ledgerName: name })}
+          ledgerCode={ledgerCode}
+          userLabel={userLabel}
+          onExport={handleExport}
+          onImportClick={() => fileInputRef.current?.click()}
+          onSwitchLedger={onSwitchLedger}
+          onSignOut={onSignOut}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1464,6 +1452,68 @@ function Modal({ children, onClose, title }) {
   );
 }
 
+function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExport, onImportClick, onSwitchLedger, onSignOut, onClose }) {
+  const [nameDraft, setNameDraft] = useState(ledgerName);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
+  const saveName = () => {
+    const trimmed = nameDraft.trim();
+    if (trimmed && trimmed !== ledgerName) onRenameSave(trimmed);
+  };
+
+  const copyCode = () => {
+    navigator.clipboard?.writeText(ledgerCode).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 1500);
+    });
+  };
+
+  return (
+    <Modal onClose={onClose} title="Settings">
+      <Field label="Ledger name">
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            style={S.input}
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+            placeholder="e.g. Smith Family Card Ledger"
+          />
+          <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={saveName} disabled={!nameDraft.trim() || nameDraft.trim() === ledgerName}>
+            Save
+          </button>
+        </div>
+      </Field>
+
+      <Field label="Ledger code">
+        <div style={S.codeMenuCode} onClick={copyCode} title="Click to copy">
+          {ledgerCode} {copyFeedback ? "✓ copied" : ""}
+        </div>
+        <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll sign in with Google and enter it.</div>
+      </Field>
+
+      <Field label="Backup">
+        <div style={{ display: "flex", gap: 10 }}>
+          <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={onExport}>
+            <Download size={13} /> Export
+          </button>
+          <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={onImportClick}>
+            <Upload size={13} /> Import
+          </button>
+        </div>
+      </Field>
+
+      <Field label="Account">
+        <div style={{ fontSize: 12, color: S.colors.muted, marginBottom: 10, fontFamily: S.fonts.mono }}>{userLabel}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSwitchLedger}>Use a different ledger</button>
+          <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSignOut}>Sign out</button>
+        </div>
+      </Field>
+    </Modal>
+  );
+}
+
 function CardModal({ card, nextColor, onSave, onClose }) {
   const [name, setName] = useState(card?.name || "");
   const [issuer, setIssuer] = useState(card?.issuer || "");
@@ -1686,6 +1736,14 @@ function Search(p) { return <Icon {...p}><circle cx="11" cy="11" r="8" /><line x
 function Download(p) { return <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>; }
 function Upload(p) { return <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></Icon>; }
 function ChevronDown(p) { return <Icon {...p}><polyline points="6 9 12 15 18 9" /></Icon>; }
+function Settings(p) {
+  return (
+    <Icon {...p}>
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </Icon>
+  );
+}
 function Pencil(p) { return <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-4.5Z" /><path d="m15.5 5.5 3 3" /></Icon>; }
 function Trash2(p) { return <Icon {...p}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></Icon>; }
 function GripVertical(p) {
@@ -1766,9 +1824,7 @@ const S = {
   statValue: { fontSize: 22, fontFamily: fonts.mono, fontWeight: 500 },
   statSub: { fontSize: 11, color: colors.muted, marginTop: 4 },
   statBreakdown: { display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10.5, color: colors.muted, marginTop: 4, fontFamily: fonts.mono },
-  backupGroup: { display: "flex", alignItems: "center", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: "hidden" },
   backupBtn: { width: 32, height: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: colors.muted, cursor: "pointer" },
-  backupDivider: { width: 1, height: 16, background: colors.border },
   walletRow: { display: "flex", gap: 10, overflowX: "auto", overflowY: "visible", paddingTop: 18, paddingBottom: 10, marginBottom: 8, alignItems: "flex-start" },
   chip: { flexShrink: 0, background: colors.surface, border: `1px solid ${colors.border}`, color: colors.muted, borderRadius: 20, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans },
   chipActive: { background: colors.surface2, color: colors.text, borderColor: colors.gold },
@@ -1841,8 +1897,6 @@ const S = {
   btnGhost: { background: "transparent", color: colors.muted, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans },
   btnDanger: { background: colors.rose, color: "#FFFFFF", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
   templateRow: { display: "flex", justifyContent: "space-between", alignItems: "center", background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", textAlign: "left", width: "100%" },
-  codeMenu: { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 260, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 14, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
-  codeMenuLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 6 },
   codeMenuCode: { fontFamily: fonts.mono, fontSize: 16, color: colors.gold, cursor: "pointer", marginBottom: 8, letterSpacing: "0.02em" },
   codeMenuHint: { fontSize: 11.5, color: colors.muted, lineHeight: 1.4 },
 };
