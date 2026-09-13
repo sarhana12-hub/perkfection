@@ -1893,6 +1893,8 @@ function AuthGate() {
   const [resolvingCode, setResolvingCode] = useState(false);
   const [mode, setMode] = useState("choose"); // "choose" | "join"
   const [joinDraft, setJoinDraft] = useState("");
+  const [justCreatedCode, setJustCreatedCode] = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -1960,10 +1962,17 @@ function AuthGate() {
     db.collection(LEDGERS_COLLECTION).doc(code).set({ ...buildDefaultSeed(), createdAt: new Date().toISOString() })
       .then(() => {
         saveLocalCode(user.uid, code);
-        setLedgerCode(code);
+        setJustCreatedCode(code);
       })
       .catch(() => setError("Couldn't start a new ledger — try again."))
       .finally(() => setBusy(false));
+  };
+
+  const copyJustCreatedCode = () => {
+    navigator.clipboard?.writeText(justCreatedCode).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 1500);
+    });
   };
 
   const joinExisting = () => {
@@ -2002,6 +2011,31 @@ function AuthGate() {
             Sign in with Google
           </button>
           {error && <div style={AUTH_S.error}>{error}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  if (justCreatedCode) {
+    return (
+      <div style={AUTH_S.wrap}>
+        <div style={AUTH_S.card}>
+          <div style={AUTH_S.title}>Ledger created!</div>
+          <div style={AUTH_S.sub}>Share this code with anyone else who should see it — they'll sign in with Google and enter it to join.</div>
+          <div style={{ ...S.codeMenuCode, fontSize: 24, textAlign: "center", marginBottom: 0 }} onClick={copyJustCreatedCode} title="Click to copy">
+            {justCreatedCode}
+          </div>
+          <div style={{ fontSize: 12, color: colors.muted, textAlign: "center", marginTop: 6 }}>
+            {copyFeedback ? "✓ copied" : "Tap to copy"}
+          </div>
+          <button
+            type="button"
+            className="lg-btn-primary"
+            style={{ ...S.btnPrimary, width: "100%", marginTop: 18 }}
+            onClick={() => { setLedgerCode(justCreatedCode); setJustCreatedCode(null); }}
+          >
+            Continue to ledger
+          </button>
         </div>
       </div>
     );
