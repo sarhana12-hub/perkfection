@@ -328,6 +328,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const isAllCategoriesSelected = selectedCategoryIds.size === 0;
   const [cardModal, setCardModal] = useState(null); // null | 'new' | card
   const [benefitModal, setBenefitModal] = useState(null); // null | {cardId} | benefit
+  const [detailBenefitId, setDetailBenefitId] = useState(null); // id of the benefit shown in the detail panel, or null
   const [showTemplates, setShowTemplates] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // {type, id, name}
   const [searchQuery, setSearchQuery] = useState("");
@@ -756,6 +757,17 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     );
   }
 
+  const detailBenefit = detailBenefitId ? benefits.find((b) => b.id === detailBenefitId) || null : null;
+  const detailCard = detailBenefit ? cards.find((c) => c.id === detailBenefit.cardId) : null;
+  const detailYtdTotal = detailBenefit
+    ? Object.entries(usage).reduce((sum, [k, u]) => {
+        const sep = k.indexOf(":");
+        if (k.slice(0, sep) !== detailBenefit.id) return sum;
+        if (k.slice(sep + 1, sep + 5) !== String(new Date().getFullYear())) return sum;
+        return sum + redeemedValue(detailBenefit, u);
+      }, 0)
+    : 0;
+
   const selectedCards = cards.filter((c) => selectedCardIds.has(c.id));
   const cardScopeLabel = isAllSelected
     ? "across all cards"
@@ -1119,8 +1131,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                     onSetAmount={setUsageAmount}
                     onSetCount={setUsageCount}
                     onAddOfferAmount={addOfferAmount}
-                    onEdit={() => setBenefitModal(b)}
-                    onDelete={() => setConfirmDelete({ type: "benefit", id: b.id, name: b.name })}
+                    onOpenDetail={(id) => setDetailBenefitId(id)}
                   />
                 ))}
               </div>
@@ -1150,8 +1161,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                       onSetAmount={setUsageAmount}
                       onSetCount={setUsageCount}
                       onAddOfferAmount={addOfferAmount}
-                      onEdit={() => setBenefitModal(b)}
-                      onDelete={() => setConfirmDelete({ type: "benefit", id: b.id, name: b.name })}
+                      onOpenDetail={(id) => setDetailBenefitId(id)}
                     />
                   ))}
                 </div>
@@ -1260,6 +1270,24 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       {uncategorizedBenefits.length > 0 && (
         <CategorizeBackfillModal benefits={uncategorizedBenefits} cards={cards} onSave={saveCategorization} />
       )}
+
+      {detailBenefit && (
+        <BenefitDetailModal
+          benefit={detailBenefit}
+          card={detailCard}
+          usage={usage}
+          periodDate={viewDate}
+          isHistorical={!!viewDate}
+          ytdTotal={detailYtdTotal}
+          onToggleSingle={toggleSingleUsage}
+          onSetAmount={setUsageAmount}
+          onSetCount={setUsageCount}
+          onAddOfferAmount={addOfferAmount}
+          onEdit={() => { setDetailBenefitId(null); setBenefitModal(detailBenefit); }}
+          onDelete={() => { setDetailBenefitId(null); setConfirmDelete({ type: "benefit", id: detailBenefit.id, name: detailBenefit.name }); }}
+          onClose={() => setDetailBenefitId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1331,7 +1359,7 @@ function CatSittingIcon() {
   );
 }
 
-function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, onReorder, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onEdit, onDelete }) {
+function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, onReorder, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onOpenDetail }) {
   const mode = benefit.trackingMode || "single";
   const info = getPeriodInfo(benefit.periodicity, periodDate || new Date(), benefit.resetMonth, benefit.resetDay);
   const usageEntry = usage[`${benefit.id}:${info.key}`];
@@ -1511,61 +1539,60 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
         </div>
       )}
 
-      <div style={S.rowMain}>
-        <div style={S.rowTop}>
-          <span style={{ ...S.rowName, textDecoration: visuallyDone ? "line-through" : "none", color: visuallyDone ? S.colors.muted : S.colors.text }}>
-            {benefit.name}
-          </span>
-          {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
-          {benefit.category && (
-            <span style={S.categoryTag}>{CATEGORIES.find((c) => c.id === benefit.category)?.label || benefit.category}</span>
-          )}
-          {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
-          {showCard && card && (
-            <span style={S.cardBadge}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
-              {card.name}
+      <div style={S.rowOpenArea} onClick={() => onOpenDetail(benefit.id)}>
+        <div style={S.rowMain}>
+          <div style={S.rowTop}>
+            <span style={{ ...S.rowName, textDecoration: visuallyDone ? "line-through" : "none", color: visuallyDone ? S.colors.muted : S.colors.text }}>
+              {benefit.name}
             </span>
+            {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
+            {benefit.category && (
+              <span style={S.categoryTag}>{CATEGORIES.find((c) => c.id === benefit.category)?.label || benefit.category}</span>
+            )}
+            {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
+            {showCard && card && (
+              <span style={S.cardBadge}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
+                {card.name}
+              </span>
+            )}
+          </div>
+          {benefit.notes && <div style={S.rowNotes}>{benefit.notes}</div>}
+          {showCompleteMsg && (
+            <div className="lg-complete-msg" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: S.colors.sage, marginTop: 4 }}>
+              <Check size={11} strokeWidth={3} /> Nice! Moving to the bottom of the list…
+            </div>
+          )}
+          {mode !== "offer" && (
+            <div style={S.progressTrack}>
+              <div
+                style={{
+                  ...S.progressFill,
+                  width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, ((completing ? cap : amountUsed) / cap) * 100) : 0) : info.fracElapsed * 100}%`,
+                  background: visuallyDone ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
+                  transition: "width 0.4s ease, background 0.4s ease",
+                }}
+              />
+            </div>
           )}
         </div>
-        {benefit.notes && <div style={S.rowNotes}>{benefit.notes}</div>}
-        {showCompleteMsg && (
-          <div className="lg-complete-msg" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: S.colors.sage, marginTop: 4 }}>
-            <Check size={11} strokeWidth={3} /> Nice! Moving to the bottom of the list…
+        <div style={S.rowRight}>
+          <div style={S.rowValue}>
+            {mode === "cumulative"
+              ? `${fmtMoneyPlain(amountUsed)} / ${fmtMoney(cap)}`
+              : mode === "counter"
+              ? benefit.targetCount
+                ? `${count} / ${benefit.targetCount}`
+                : `${count}×`
+              : mode === "offer"
+              ? fmtMoneyPlain(offerTotal)
+              : fmtMoney(cap)}
           </div>
-        )}
-        {mode !== "offer" && (
-          <div style={S.progressTrack}>
-            <div
-              style={{
-                ...S.progressFill,
-                width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, ((completing ? cap : amountUsed) / cap) * 100) : 0) : info.fracElapsed * 100}%`,
-                background: visuallyDone ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
-                transition: "width 0.4s ease, background 0.4s ease",
-              }}
-            />
+          <div style={{ ...S.rowDays, color: urgent ? S.colors.roseText : S.colors.muted }}>
+            {mode === "counter" || mode === "offer" || visuallyDone || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
           </div>
-        )}
-      </div>
-      <div style={S.rowRight}>
-        <div style={S.rowValue}>
-          {mode === "cumulative"
-            ? `${fmtMoneyPlain(amountUsed)} / ${fmtMoney(cap)}`
-            : mode === "counter"
-            ? benefit.targetCount
-              ? `${count} / ${benefit.targetCount}`
-              : `${count}×`
-            : mode === "offer"
-            ? fmtMoneyPlain(offerTotal)
-            : fmtMoney(cap)}
         </div>
-        <div style={{ ...S.rowDays, color: urgent ? S.colors.roseText : S.colors.muted }}>
-          {mode === "counter" || mode === "offer" || visuallyDone || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
-        </div>
-      </div>
-      <div className="lg-rowactions" style={S.rowActions}>
-        <Pencil size={13} style={S.iconBtn} onClick={onEdit} />
-        <Trash2 size={13} style={S.iconBtn} onClick={onDelete} />
+        <ChevronDown size={14} style={S.rowChevron} />
       </div>
     </div>
   );
@@ -1698,6 +1725,180 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
           <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSignOut}>Change name</button>
         </div>
       </Field>
+    </Modal>
+  );
+}
+
+function BenefitDetailModal({ benefit, card, usage, periodDate, isHistorical, ytdTotal, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onEdit, onDelete, onClose }) {
+  const mode = benefit.trackingMode || "single";
+  const info = getPeriodInfo(benefit.periodicity, periodDate || new Date(), benefit.resetMonth, benefit.resetDay);
+  const usageEntry = usage[`${benefit.id}:${info.key}`];
+  const cap = Number(benefit.value) || 0;
+  const amountUsed = mode === "cumulative" ? Math.min(Number(usageEntry?.amount) || 0, cap) : 0;
+  const offerTotal = mode === "offer" ? Number(usageEntry?.amount) || 0 : 0;
+  const count = mode === "counter" ? Number(usageEntry?.count) || 0 : 0;
+  const done = isBenefitDone(benefit, usageEntry);
+
+  const [amountDraft, setAmountDraft] = useState(mode === "cumulative" ? String(amountUsed || "") : "");
+  const [offerDraft, setOfferDraft] = useState("");
+
+  // A brief pause before closing (rather than vanishing the instant you tap)
+  // gives you a moment to see the button's label flip before the panel goes
+  // away — the fuller "greens out, message, then moves" sequence lives on
+  // the list row itself, where the quick checkbox already does that.
+  const closeSoon = () => setTimeout(onClose, 350);
+
+  const modeHint = TRACKING_MODES.find((m) => m.id === mode)?.hint;
+
+  return (
+    <Modal onClose={onClose} title={benefit.name}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        {card && (
+          <span style={S.cardBadge}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
+            {card.name}
+          </span>
+        )}
+        {benefit.category && <span style={S.categoryTag}>{CATEGORIES.find((c) => c.id === benefit.category)?.label || benefit.category}</span>}
+        {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
+      </div>
+
+      {benefit.notes && <div style={{ fontSize: 13, color: S.colors.muted, lineHeight: 1.5, marginBottom: 16 }}>{benefit.notes}</div>}
+
+      <div style={S.detailStatRow}>
+        <div>
+          <div style={S.detailStatLabel}>{isHistorical ? info.label : "This period"}</div>
+          <div style={S.detailStatValue}>
+            {mode === "cumulative" ? `${fmtMoney(amountUsed)} / ${fmtMoney(cap)}`
+              : mode === "counter" ? (benefit.targetCount ? `${count} / ${benefit.targetCount}` : `${count}×`)
+              : mode === "offer" ? fmtMoney(offerTotal)
+              : fmtMoney(cap)}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={S.detailStatLabel}>Captured this year</div>
+          <div style={S.detailStatValue}>{fmtMoney(ytdTotal)}</div>
+        </div>
+      </div>
+
+      {mode !== "offer" && (
+        <div style={{ ...S.progressTrack, maxWidth: "none", height: 6, marginTop: 2, marginBottom: 22 }}>
+          <div
+            style={{
+              ...S.progressFill,
+              width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, (amountUsed / cap) * 100) : 0) : info.fracElapsed * 100}%`,
+              background: done ? S.colors.sage : mode === "cumulative" ? S.colors.amber : S.colors.border2,
+            }}
+          />
+        </div>
+      )}
+
+      {mode === "single" && (
+        <button
+          type="button"
+          className="lg-btn-primary"
+          style={{
+            ...S.btnPrimary, width: "100%", padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            background: done ? "transparent" : S.colors.sage,
+            border: done ? `1px solid ${S.colors.border}` : "none",
+            color: done ? S.colors.muted : "#0F1216",
+          }}
+          onClick={() => { onToggleSingle(benefit.id, info.key); closeSoon(); }}
+        >
+          <Check size={16} strokeWidth={3} /> {done ? "Mark as unused" : "Mark as used"}
+        </button>
+      )}
+
+      {mode === "cumulative" && (
+        <>
+          <Field label="Amount used this period ($)">
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="number"
+                style={S.input}
+                value={amountDraft}
+                onChange={(e) => setAmountDraft(e.target.value)}
+                placeholder="0"
+              />
+              <button
+                type="button"
+                className="lg-btn-ghost"
+                style={S.btnGhost}
+                onClick={() => onSetAmount(benefit.id, info.key, Math.max(0, Math.min(Number(amountDraft) || 0, cap)))}
+              >
+                Save
+              </button>
+            </div>
+          </Field>
+          <button
+            type="button"
+            className="lg-btn-primary"
+            style={{
+              ...S.btnPrimary, width: "100%", marginBottom: 4,
+              background: done ? "transparent" : S.colors.sage,
+              border: done ? `1px solid ${S.colors.border}` : "none",
+              color: done ? S.colors.muted : "#0F1216",
+            }}
+            onClick={() => { onSetAmount(benefit.id, info.key, done ? 0 : cap); closeSoon(); }}
+          >
+            {done ? "Mark as not fully used" : `Mark fully used (${fmtMoney(cap)})`}
+          </button>
+        </>
+      )}
+
+      {mode === "counter" && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 18 }}>
+          <button
+            type="button"
+            className="lg-counterbtn"
+            style={{ ...S.counterBtn, width: 44, height: 44, borderRadius: 10 }}
+            onClick={() => onSetCount(benefit.id, info.key, Math.max(0, count - 1))}
+            aria-label="Decrease"
+          >
+            <Minus size={18} />
+          </button>
+          <div style={{ fontFamily: S.fonts.mono, fontSize: 28, minWidth: 56, textAlign: "center" }}>{count}</div>
+          <button
+            type="button"
+            className="lg-counterbtn"
+            style={{ ...S.counterBtn, width: 44, height: 44, borderRadius: 10 }}
+            onClick={() => onSetCount(benefit.id, info.key, count + 1)}
+            aria-label="Increase"
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+      )}
+
+      {mode === "offer" && (
+        <Field label="Add a cash-back amount earned ($)">
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type="number"
+              style={S.input}
+              value={offerDraft}
+              onChange={(e) => setOfferDraft(e.target.value)}
+              placeholder="$ earned"
+              autoFocus
+            />
+            <button
+              type="button"
+              className="lg-btn-primary"
+              style={S.btnPrimary}
+              onClick={() => { onAddOfferAmount(benefit.id, info.key, Number(offerDraft) || 0); setOfferDraft(""); }}
+            >
+              Add
+            </button>
+          </div>
+        </Field>
+      )}
+
+      {modeHint && <div style={{ fontSize: 12, color: S.colors.muted, marginTop: 6, marginBottom: 18, lineHeight: 1.4 }}>{modeHint}</div>}
+
+      <div style={{ display: "flex", gap: 10, borderTop: `1px solid ${S.colors.border}`, paddingTop: 16, marginTop: 4 }}>
+        <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, flex: 1 }} onClick={onEdit}>Edit details</button>
+        <button type="button" className="lg-btn-danger" style={{ ...S.btnDanger, flex: 1 }} onClick={onDelete}>Delete</button>
+      </div>
     </Modal>
   );
 }
@@ -2100,10 +2301,14 @@ const S = {
   rowNotes: { fontSize: 12, color: colors.muted, marginTop: 3, maxWidth: 480 },
   progressTrack: { height: 3, background: colors.border, borderRadius: 2, marginTop: 8, overflow: "hidden", maxWidth: 200 },
   progressFill: { height: "100%", borderRadius: 2 },
+  rowOpenArea: { display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: "pointer" },
   rowRight: { textAlign: "right", flexShrink: 0, width: 100 },
   rowValue: { fontFamily: fonts.mono, fontSize: 13.5 },
   rowDays: { fontSize: 11, fontFamily: fonts.mono, marginTop: 3 },
-  rowActions: { display: "flex", gap: 8, flexShrink: 0, opacity: 0.55 },
+  rowChevron: { color: colors.muted, flexShrink: 0, transform: "rotate(-90deg)" },
+  detailStatRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, gap: 16 },
+  detailStatLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 4 },
+  detailStatValue: { fontSize: 20, fontFamily: fonts.mono, fontWeight: 500, color: colors.text },
   addBenefitBtn: { alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, marginTop: 6 },
   iconBtn: { color: colors.muted, cursor: "pointer" },
   empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "50px 20px" },
@@ -2130,7 +2335,6 @@ const CSS_TEXT = `
   @keyframes lg-fadein-up { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
   .lg-complete-msg { animation: lg-fadein-up 0.25s ease; }
   .lg-row:hover { background: rgba(255,255,255,0.02); }
-  .lg-row:hover .lg-rowactions, .lg-row:active .lg-rowactions { opacity: 1 !important; }
   .lg-cardtile { transition: opacity 0.15s ease, transform 0.15s ease; }
   .lg-cardtile:hover { transform: translateY(-2px); opacity: 1 !important; }
   .lg-cardactions { display: flex; gap: 6px; opacity: 0.55; transition: opacity 0.15s ease; }
