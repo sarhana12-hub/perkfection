@@ -836,13 +836,13 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
               : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of fees`
             : `${new Date().getFullYear()}`}
         </div>
-        <div style={S.statBreakdown}>
-          {CATEGORIES.map((c) => (
-            <span key={c.id}>{c.label} {fmtMoneyPlain(stats.capturedByCategory[c.id])}</span>
-          ))}
-        </div>
         {showCapturedDetail && (
           <div style={S.capturedDetailList}>
+            <div style={{ ...S.statBreakdown, marginBottom: 12 }}>
+              {CATEGORIES.map((c) => (
+                <span key={c.id}>{c.label} {fmtMoneyPlain(stats.capturedByCategory[c.id])}</span>
+              ))}
+            </div>
             {stats.capturedByBenefit.map(({ benefit, total }) => {
               const card = cards.find((c) => c.id === benefit.cardId);
               return (
