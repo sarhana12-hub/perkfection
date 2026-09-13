@@ -316,7 +316,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const [sortMode, setSortMode] = useState("custom"); // urgency | value | name | custom — default is manual drag order, grouped by periodicity
   const [showFees, setShowFees] = useState(false);
   const [showCapturedDetail, setShowCapturedDetail] = useState(false);
-  const [draggedBenefitId, setDraggedBenefitId] = useState(null);
   const [view, setView] = useState("ledger"); // "ledger" | "history"
   const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
   const [viewDate, setViewDate] = useState(null); // null = live/today; otherwise editing that past period
@@ -1067,10 +1066,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                       periodDate={viewDate}
                       isHistorical={!!viewDate}
                       reorderable={sortMode === "custom"}
-                      isDragging={draggedBenefitId === b.id}
-                      onDragStartRow={() => setDraggedBenefitId(b.id)}
-                      onDragEndRow={() => setDraggedBenefitId(null)}
-                      onDropRow={() => { if (draggedBenefitId) reorderBenefit(draggedBenefitId, b.id); setDraggedBenefitId(null); }}
+                      onReorder={reorderBenefit}
                       onToggleSingle={toggleSingleUsage}
                       onSetAmount={setUsageAmount}
                       onSetCount={setUsageCount}
@@ -1237,7 +1233,7 @@ function CatSittingIcon() {
   );
 }
 
-function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, isDragging, onDragStartRow, onDragEndRow, onDropRow, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onEdit, onDelete }) {
+function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, onReorder, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onEdit, onDelete }) {
   const mode = benefit.trackingMode || "single";
   const info = getPeriodInfo(benefit.periodicity, periodDate || new Date(), benefit.resetMonth, benefit.resetDay);
   const usageEntry = usage[`${benefit.id}:${info.key}`];
@@ -1250,6 +1246,25 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
 
   const [logging, setLogging] = useState(false);
   const [draft, setDraft] = useState("");
+  const [dragging, setDragging] = useState(false);
+
+  // Pointer Events (not HTML5 drag-and-drop, which iOS Safari has never
+  // supported for touch) so drag-to-reorder works on the phone this app
+  // actually runs on. Initiated from the grip handle only, so a tap
+  // anywhere else in the row (checkbox, edit, delete) is unaffected.
+  const handleGripDown = (e) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragging(true);
+  };
+  const handleGripUp = (e) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setDragging(false);
+    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-benefit-row]");
+    const targetId = target?.getAttribute("data-benefit-row");
+    if (targetId) onReorder(benefit.id, targetId);
+  };
+  const handleGripCancel = () => setDragging(false);
 
   const openLog = () => {
     setDraft(mode === "offer" ? "" : String(amountUsed || ""));
@@ -1268,15 +1283,17 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
   return (
     <div
       className="lg-row"
-      style={{ ...S.row, opacity: isDragging ? 0.4 : 1, cursor: reorderable ? "grab" : "default" }}
-      draggable={reorderable}
-      onDragStart={reorderable ? onDragStartRow : undefined}
-      onDragEnd={reorderable ? onDragEndRow : undefined}
-      onDragOver={reorderable ? (e) => e.preventDefault() : undefined}
-      onDrop={reorderable ? onDropRow : undefined}
+      data-benefit-row={benefit.id}
+      style={{ ...S.row, opacity: dragging ? 0.4 : 1 }}
     >
       {reorderable && (
-        <span style={S.dragHandle} aria-hidden="true">
+        <span
+          style={{ ...S.dragHandle, touchAction: "none" }}
+          aria-hidden="true"
+          onPointerDown={handleGripDown}
+          onPointerUp={handleGripUp}
+          onPointerCancel={handleGripCancel}
+        >
           <GripVertical size={14} />
         </span>
       )}
