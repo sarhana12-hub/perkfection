@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Perkfection</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14171C">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.ico">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+  color-scheme: dark;
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; background:#14171C; }
+  body{ font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+/* ---------------- Firebase (shared project with Two-Forks; own collection) ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyBxY-rwhNvTsREJ7IvM33I0PTNNk8gxWJw",
+  authDomain: "two-forks-32e3d.firebaseapp.com",
+  projectId: "two-forks-32e3d",
+  storageBucket: "two-forks-32e3d.firebasestorage.app",
+  messagingSenderId: "514216300410",
+  appId: "1:514216300410:web:88aa6bfa4951e67e6f90c3"
+};
+const fbApp = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+try { db.enablePersistence({ synchronizeTabs: true }).catch(() => {}); } catch (e) {}
+
+const LEDGERS_COLLECTION = "perkfectionLedgers";
+const CODE_WORDS = ["PERK", "GOLD", "PLAT", "MILE", "POINT", "BONUS", "CREDIT", "SWIPE", "VAULT", "LOUNGE", "TRAVEL", "CASHBACK"];
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function genLedgerCode() {
+  const w = CODE_WORDS[Math.floor(Math.random() * CODE_WORDS.length)];
+  let suffix = "";
+  for (let i = 0; i < 3; i++) suffix += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return `${w}-${suffix}`;
+}
+function localCodeKey(uid) { return uid ? `perkfection:ledger:${uid}` : null; }
+function loadLocalCode(uid) { const k = localCodeKey(uid); if (!k) return null; try { return localStorage.getItem(k); } catch (e) { return null; } }
+function saveLocalCode(uid, code) { const k = localCodeKey(uid); if (k) { try { localStorage.setItem(k, code); } catch (e) {} } }
+function forgetLocalCode(uid) { const k = localCodeKey(uid); if (k) { try { localStorage.removeItem(k); } catch (e) {} } }
+
+const STORAGE_KEY = "benefits-ledger-v1"; // unused now; kept for reference
+
+const PALETTE = [
+  "#1B4B43", // pine
+  "#6B2737", // wine
+  "#23395B", // navy
+  "#5B4A2E", // umber
+  "#3D3654", // plum-grey
+  "#4A3B2C", // walnut
+  "#2F4858", // slate teal
+  "#7A3B2E", // rust
+  "#4B4423", // olive
+  "#3A2E4A", // aubergine
+  "#1F4A4A", // deep teal
+  "#5C2E4E", // mulberry
+  "#40372A", // bark
+  "#264D3B", // spruce
+  "#6E7580", // silver
+  "#8C6A2E", // antique gold
+];
+
+// Colors assigned to the four starter cards on first launch, matched to each card's name.
+const DEFAULT_CARD_COLORS = {
+  "Amex Platinum": "#6E7580", // silver
+  "Amex Gold": "#8C6A2E", // antique gold
+  "Delta SkyMiles Reserve": "#6B2737", // wine/red, Delta's brand color
+  "Chase Sapphire Reserve": "#23395B", // navy, "Sapphire"
+};
+
+
+const PERIODICITY = [
+  { id: "monthly", label: "Monthly", short: "mo" },
+  { id: "quarterly", label: "Quarterly", short: "qtr" },
+  { id: "semiannual", label: "Semi-annual", short: "half" },
+  { id: "annual", label: "Annual", short: "yr" },
+];
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const TRACKING_MODES = [
+  { id: "single", label: "Use once", hint: "Mark the whole credit used at once — most fixed-amount credits." },
+  { id: "cumulative", label: "Partial / running total", hint: "Log how much you've redeemed toward the cap, e.g. a balance spent across several purchases." },
+  { id: "counter", label: "Multi-use counter", hint: "Tally uses like lounge visits — not a dollar amount." },
+  { id: "offer", label: "Cash-back offers (running total)", hint: "For irregular deals like an Amex/Chase Offer — no fixed cap and always monthly. Log each amount as you earn it; it adds to a running total for the month." },
+];
+
+// Templates reflect each issuer's publicly posted 2026 benefits as of this writing.
+// Card terms and credit amounts change often — confirm current details with the issuer.
+const TEMPLATES = [
+  {
+    name: "Amex Platinum",
+    issuer: "American Express",
+    annualFee: 895,
+    benefits: [
+      { name: "Uber Cash", vendor: "Uber", value: 15, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Digital entertainment credit", vendor: "Disney+, Hulu, NYT, Peacock, YouTube & more", value: 25, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Resy credit", vendor: "Resy restaurants", value: 100, periodicity: "quarterly", trackingMode: "cumulative", notes: "" },
+      { name: "lululemon credit", vendor: "lululemon", value: 75, periodicity: "quarterly", trackingMode: "cumulative", notes: "" },
+      { name: "Hotel credit", vendor: "Fine Hotels + Resorts / The Hotel Collection", value: 300, periodicity: "semiannual", trackingMode: "cumulative", notes: "" },
+      { name: "Airline fee credit", vendor: "One selected airline", value: 200, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+      { name: "CLEAR Plus credit", vendor: "CLEAR", value: 219, periodicity: "annual", trackingMode: "single", notes: "" },
+      { name: "Uber One credit", vendor: "Uber One", value: 120, periodicity: "annual", trackingMode: "single", notes: "" },
+      { name: "Walmart+ credit", vendor: "Walmart+", value: 12.95, periodicity: "monthly", trackingMode: "single", notes: "" },
+    ],
+  },
+  {
+    name: "Amex Gold",
+    issuer: "American Express",
+    annualFee: 325,
+    benefits: [
+      { name: "Uber Cash", vendor: "Uber", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Dining credit", vendor: "Grubhub, Five Guys, Cheesecake Factory, Wonder, Buffalo Wild Wings", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Dunkin' credit", vendor: "Dunkin'", value: 7, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Resy credit", vendor: "Resy restaurants", value: 50, periodicity: "semiannual", trackingMode: "cumulative", notes: "" },
+      { name: "Hotel Collection credit", vendor: "The Hotel Collection via Amex Travel", value: 100, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+    ],
+  },
+  {
+    name: "Delta SkyMiles Reserve",
+    issuer: "American Express",
+    annualFee: 650,
+    benefits: [
+      { name: "Resy credit", vendor: "Resy restaurants", value: 20, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Delta Stays credit", vendor: "Delta Stays (delta.com/stays)", value: 200, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+      { name: "Rideshare credit", vendor: "Uber, Lyft & other rideshare", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Companion Certificate", vendor: "Delta", value: 0, periodicity: "annual", trackingMode: "single", notes: "" },
+    ],
+  },
+  {
+    name: "Chase Sapphire Reserve",
+    issuer: "Chase",
+    annualFee: 795,
+    benefits: [
+      { name: "Annual travel credit", vendor: "Any travel purchase", value: 300, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+      { name: "The Edit hotel credit", vendor: "The Edit by Chase Travel", value: 500, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+      { name: "Dining credit", vendor: "Sapphire Reserve Exclusive Tables", value: 150, periodicity: "semiannual", trackingMode: "cumulative", notes: "" },
+      { name: "StubHub / viagogo credit", vendor: "StubHub, viagogo", value: 300, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+      { name: "DoorDash credit", vendor: "DoorDash", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Lyft credit", vendor: "Lyft", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Peloton credit", vendor: "Peloton", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
+      { name: "Apple TV+ & Music", vendor: "Apple", value: 250, periodicity: "annual", trackingMode: "single", notes: "" },
+    ],
+  },
+];
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+// Seeds the ledger with all four card templates on first-ever launch, so there's something
+// to look at right away instead of an empty state.
+function buildDefaultSeed() {
+  const cards = [];
+  const benefits = [];
+  TEMPLATES.forEach((t, i) => {
+    const cardId = uid();
+    cards.push({ id: cardId, name: t.name, issuer: t.issuer, annualFee: t.annualFee, color: DEFAULT_CARD_COLORS[t.name] || PALETTE[i % PALETTE.length] });
+    t.benefits.forEach((b) => benefits.push({ id: uid(), cardId, ...b }));
+  });
+  return { cards, benefits, usage: {} };
+}
+
+function fmtMoney(n) {
+  if (n === 0) return "—";
+  return `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: n % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`;
+}
+
+function fmtMoneyPlain(n) {
+  const num = Number(n) || 0;
+  return `$${num.toLocaleString(undefined, { minimumFractionDigits: num % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`;
+}
+
+function fmtMoneyWhole(n) {
+  const num = Number(n) || 0;
+  return `$${Math.round(num).toLocaleString()}`;
+}
+
+function getPeriodInfo(periodicity, date = new Date(), resetMonth, resetDay) {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  let key, start, end, label;
+  if (periodicity === "monthly") {
+    key = `${y}-${String(m + 1).padStart(2, "0")}`;
+    start = new Date(y, m, 1);
+    end = new Date(y, m + 1, 0);
+    label = start.toLocaleDateString(undefined, { month: "long" });
+  } else if (periodicity === "quarterly") {
+    const q = Math.floor(m / 3);
+    key = `${y}-Q${q + 1}`;
+    start = new Date(y, q * 3, 1);
+    end = new Date(y, q * 3 + 3, 0);
+    label = `Q${q + 1} ${y}`;
+  } else if (periodicity === "semiannual") {
+    const h = m < 6 ? 1 : 2;
+    key = `${y}-H${h}`;
+    start = new Date(y, h === 1 ? 0 : 6, 1);
+    end = new Date(y, h === 1 ? 6 : 12, 0);
+    label = h === 1 ? `Jan–Jun ${y}` : `Jul–Dec ${y}`;
+  } else if (resetMonth && resetDay) {
+    // Anniversary-based annual credit: runs from the most recent reset date up to (not
+    // including) the next one, rather than the calendar year.
+    const am = resetMonth - 1;
+    const thisYearReset = new Date(y, am, resetDay);
+    const startYear = date < thisYearReset ? y - 1 : y;
+    start = new Date(startYear, am, resetDay);
+    end = new Date(startYear + 1, am, resetDay - 1);
+    key = `${startYear}-${String(resetMonth).padStart(2, "0")}-${String(resetDay).padStart(2, "0")}`;
+    label = `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+  } else {
+    key = `${y}`;
+    start = new Date(y, 0, 1);
+    end = new Date(y, 11, 31);
+    label = `${y}`;
+  }
+  const total = end - start;
+  const elapsed = date - start;
+  const daysLeft = Math.max(0, Math.ceil((end - date) / (1000 * 60 * 60 * 24)));
+  return { key, start, end, label, fracElapsed: Math.min(1, Math.max(0, elapsed / total)), daysLeft };
+}
+
+// Turns a stored period key (e.g. "2026-03", "2026-Q1", "2026-H1", "2026", or the
+// anniversary-style "2026-03-15") back into a readable label and a sortable date, for
+// browsing past periods in the History view.
+function parsePeriodKey(periodicity, key) {
+  const year = Number(key.slice(0, 4));
+  if (periodicity === "monthly") {
+    const m = Number(key.slice(5, 7));
+    return { label: new Date(year, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }), sortDate: new Date(year, m - 1, 1) };
+  }
+  if (periodicity === "quarterly") {
+    const q = Number(key.slice(6, 7));
+    return { label: `Q${q} ${year}`, sortDate: new Date(year, (q - 1) * 3, 1) };
+  }
+  if (periodicity === "semiannual") {
+    const h = Number(key.slice(6, 7));
+    return { label: h === 1 ? `Jan–Jun ${year}` : `Jul–Dec ${year}`, sortDate: new Date(year, h === 1 ? 0 : 6, 1) };
+  }
+  if (key.length > 4) {
+    // Anniversary-based annual credit: "YYYY-MM-DD" marks the start of that credit's cycle.
+    const parts = key.split("-");
+    const am = Number(parts[1]) - 1;
+    const ad = Number(parts[2]);
+    const start = new Date(year, am, ad);
+    const end = new Date(year + 1, am, ad - 1);
+    return {
+      label: `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`,
+      sortDate: start,
+    };
+  }
+  return { label: `${year}`, sortDate: new Date(year, 0, 1) };
+}
+
+// Redemption + completion are derived from the benefit's current definition, not a frozen
+// snapshot, so editing a credit's value later doesn't leave stale numbers in past periods.
+function redeemedValue(benefit, u) {
+  const mode = benefit.trackingMode || "single";
+  const cap = Number(benefit.value) || 0;
+  if (!u) return 0;
+  if (mode === "offer") return Number(u.amount) || 0; // no cap — whatever's been logged is the value
+  if (mode === "cumulative") return Math.min(Number(u.amount) || 0, cap);
+  if (mode === "counter") return (Number(u.count) || 0) * cap;
+  return u.used || u.done ? cap : 0;
+}
+
+function isBenefitDone(benefit, u) {
+  const mode = benefit.trackingMode || "single";
+  if (!u) return false;
+  if (mode === "offer") return false; // open-ended — never "complete"
+  if (mode === "cumulative") {
+    const cap = Number(benefit.value) || 0;
+    return cap > 0 && (Number(u.amount) || 0) >= cap;
+  }
+  if (mode === "counter") {
+    return Number(benefit.targetCount) > 0 && (Number(u.count) || 0) >= Number(benefit.targetCount);
+  }
+  return !!(u.used || u.done);
+}
+
+function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitchLedger }) {
+  const [cards, setCards] = useState([]);
+  const [benefits, setBenefits] = useState([]);
+  const [usage, setUsage] = useState({});
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedCardIds, setSelectedCardIds] = useState(new Set()); // empty = all cards
+  const isAllSelected = selectedCardIds.size === 0;
+  const [cardModal, setCardModal] = useState(null); // null | 'new' | card
+  const [benefitModal, setBenefitModal] = useState(null); // null | {cardId} | benefit
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // {type, id, name}
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortMode, setSortMode] = useState("custom"); // urgency | value | name | custom — default is manual drag order, grouped by periodicity
+  const [showFees, setShowFees] = useState(false);
+  const [showCapturedDetail, setShowCapturedDetail] = useState(false);
+  const [draggedBenefitId, setDraggedBenefitId] = useState(null);
+  const [view, setView] = useState("ledger"); // "ledger" | "history"
+  const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
+  const [viewDate, setViewDate] = useState(null); // null = live/today; otherwise editing that past period
+  const [codeMenuOpen, setCodeMenuOpen] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
+  useEffect(() => {
+    if (!codeMenuOpen) return;
+    const closeIt = () => setCodeMenuOpen(false);
+    document.addEventListener("click", closeIt);
+    return () => document.removeEventListener("click", closeIt);
+  }, [codeMenuOpen]);
+
+  // Live shared data: subscribes to this instance's Firestore document and mirrors it
+  // into local state; every write below re-sends the full {cards, benefits, usage}
+  // snapshot, so anyone else with this ledger's code sees updates immediately.
+  useEffect(() => {
+    const unsub = instanceRef.onSnapshot(
+      (snap) => {
+        const data = snap.data() || { cards: [], benefits: [], usage: {} };
+        setCards(data.cards || []);
+        setBenefits(data.benefits || []);
+        setUsage(data.usage || {});
+        setLoaded(true);
+      },
+      () => {
+        setError("Couldn't load — check your connection.");
+        setLoaded(true);
+      }
+    );
+    return unsub;
+  }, [instanceRef]);
+
+  const persist = useCallback(
+    (next) => {
+      instanceRef
+        .set(next)
+        .then(() => setError(null))
+        .catch(() => setError("Couldn't save — your changes may not persist."));
+    },
+    [instanceRef]
+  );
+
+  const commit = useCallback(
+    (updates) => {
+      const next = {
+        cards: updates.cards ?? cards,
+        benefits: updates.benefits ?? benefits,
+        usage: updates.usage ?? usage,
+      };
+      if (updates.cards) setCards(updates.cards);
+      if (updates.benefits) setBenefits(updates.benefits);
+      if (updates.usage) setUsage(updates.usage);
+      persist(next);
+    },
+    [cards, benefits, usage, persist]
+  );
+
+  const fileInputRef = useRef(null);
+  const [pendingImport, setPendingImport] = useState(null);
+  const [importError, setImportError] = useState(null);
+
+  const handleExport = () => {
+    const payload = { cards, benefits, usage, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `benefits-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (!parsed || !Array.isArray(parsed.cards) || !Array.isArray(parsed.benefits) || typeof parsed.usage !== "object") {
+          setImportError("That doesn't look like a ledger backup file.");
+          return;
+        }
+        setImportError(null);
+        setPendingImport({ cards: parsed.cards, benefits: parsed.benefits, usage: parsed.usage || {} });
+      } catch (err) {
+        setImportError("Couldn't read that file — make sure it's a backup exported from this ledger.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    commit(pendingImport);
+    setPendingImport(null);
+  };
+
+  const toggleSingleUsage = (benefitId, periodKey) => {
+    const usageKey = `${benefitId}:${periodKey}`;
+    const wasUsed = !!(usage[usageKey]?.used || usage[usageKey]?.done);
+    const nextUsage = { ...usage };
+    if (wasUsed) delete nextUsage[usageKey];
+    else nextUsage[usageKey] = { used: true, updatedAt: new Date().toISOString() };
+    commit({ usage: nextUsage });
+  };
+
+  const setUsageAmount = (benefitId, periodKey, amount) => {
+    const usageKey = `${benefitId}:${periodKey}`;
+    const nextUsage = { ...usage };
+    if (amount <= 0) delete nextUsage[usageKey];
+    else nextUsage[usageKey] = { amount, updatedAt: new Date().toISOString() };
+    commit({ usage: nextUsage });
+  };
+
+  const setUsageCount = (benefitId, periodKey, count) => {
+    const usageKey = `${benefitId}:${periodKey}`;
+    const nextUsage = { ...usage };
+    if (count <= 0) delete nextUsage[usageKey];
+    else nextUsage[usageKey] = { count, updatedAt: new Date().toISOString() };
+    commit({ usage: nextUsage });
+  };
+
+  // Cash-back offers accumulate: each entry adds to whatever's already logged for that
+  // month, rather than replacing it — since a card might have several separate deals
+  // redeemed within the same period.
+  const addOfferAmount = (benefitId, periodKey, delta) => {
+    const usageKey = `${benefitId}:${periodKey}`;
+    const current = Number(usage[usageKey]?.amount) || 0;
+    const next = current + (Number(delta) || 0);
+    const nextUsage = { ...usage };
+    if (next <= 0) delete nextUsage[usageKey];
+    else nextUsage[usageKey] = { amount: next, updatedAt: new Date().toISOString() };
+    commit({ usage: nextUsage });
+  };
+
+  const saveCard = (card) => {
+    const exists = cards.some((c) => c.id === card.id);
+    const nextCards = exists ? cards.map((c) => (c.id === card.id ? card : c)) : [...cards, card];
+    commit({ cards: nextCards });
+    setCardModal(null);
+  };
+
+  const deleteCard = (cardId) => {
+    const nextCards = cards.filter((c) => c.id !== cardId);
+    const removedBenefitIds = benefits.filter((b) => b.cardId === cardId).map((b) => b.id);
+    const nextBenefits = benefits.filter((b) => b.cardId !== cardId);
+    const nextUsage = { ...usage };
+    Object.keys(nextUsage).forEach((k) => {
+      if (removedBenefitIds.some((id) => k.startsWith(id + ":"))) delete nextUsage[k];
+    });
+    commit({ cards: nextCards, benefits: nextBenefits, usage: nextUsage });
+    setSelectedCardIds((prev) => {
+      if (!prev.has(cardId)) return prev;
+      const next = new Set(prev);
+      next.delete(cardId);
+      return next;
+    });
+    setConfirmDelete(null);
+  };
+
+  const saveBenefit = (benefit) => {
+    const exists = benefits.some((b) => b.id === benefit.id);
+    const nextBenefits = exists ? benefits.map((b) => (b.id === benefit.id ? benefit : b)) : [...benefits, benefit];
+    commit({ benefits: nextBenefits });
+    setBenefitModal(null);
+  };
+
+  const deleteBenefit = (benefitId) => {
+    const nextBenefits = benefits.filter((b) => b.id !== benefitId);
+    const nextUsage = { ...usage };
+    Object.keys(nextUsage).forEach((k) => {
+      if (k.startsWith(benefitId + ":")) delete nextUsage[k];
+    });
+    commit({ benefits: nextBenefits, usage: nextUsage });
+    setConfirmDelete(null);
+  };
+
+  // Drag-and-drop reordering (Sort: Custom) works directly on the order benefits are
+  // stored in — dropping one credit onto another moves it to sit right before that one.
+  const reorderBenefit = (draggedId, targetId) => {
+    if (draggedId === targetId) return;
+    const draggedIndex = benefits.findIndex((b) => b.id === draggedId);
+    if (draggedIndex === -1) return;
+    const next = [...benefits];
+    const [item] = next.splice(draggedIndex, 1);
+    const insertAt = next.findIndex((b) => b.id === targetId);
+    if (insertAt === -1) {
+      next.push(item);
+    } else {
+      next.splice(insertAt, 0, item);
+    }
+    commit({ benefits: next });
+  };
+
+  const addTemplate = (template) => {
+    const cardId = uid();
+    const colorIndex = cards.length % PALETTE.length;
+    const newCard = { id: cardId, name: template.name, issuer: template.issuer, annualFee: template.annualFee, color: PALETTE[colorIndex] };
+    const newBenefits = template.benefits.map((b) => ({ id: uid(), cardId, ...b }));
+    commit({ cards: [...cards, newCard], benefits: [...benefits, ...newBenefits] });
+    setShowTemplates(false);
+    setSelectedCardIds(new Set([cardId]));
+  };
+
+  const visibleBenefits = useMemo(() => {
+    let list = isAllSelected ? benefits : benefits.filter((b) => selectedCardIds.has(b.cardId));
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((b) => {
+        const card = cards.find((c) => c.id === b.cardId);
+        return (
+          b.name.toLowerCase().includes(q) ||
+          (b.vendor || "").toLowerCase().includes(q) ||
+          (b.notes || "").toLowerCase().includes(q) ||
+          (card?.name || "").toLowerCase().includes(q)
+        );
+      });
+    }
+    return list;
+  }, [benefits, selectedCardIds, isAllSelected, searchQuery, cards]);
+
+  const grouped = useMemo(() => {
+    const g = {};
+    PERIODICITY.forEach((p) => (g[p.id] = []));
+    visibleBenefits.forEach((b) => g[b.periodicity]?.push(b));
+    const refDate = viewDate || new Date();
+    const isDoneForPeriod = (b) => {
+      const info = getPeriodInfo(b.periodicity, refDate, b.resetMonth, b.resetDay);
+      return isBenefitDone(b, usage[`${b.id}:${info.key}`]);
+    };
+    // Whatever's already checked off for the period being viewed sinks to the bottom of
+    // its section, regardless of sort mode — this is a tracker of what's left first.
+    Object.keys(g).forEach((pid) => {
+      if (sortMode === "custom") {
+        const notDone = g[pid].filter((b) => !isDoneForPeriod(b));
+        const done = g[pid].filter((b) => isDoneForPeriod(b));
+        g[pid] = [...notDone, ...done]; // preserves manual order within each partition
+      } else {
+        g[pid].sort((a, b) => {
+          const doneA = isDoneForPeriod(a);
+          const doneB = isDoneForPeriod(b);
+          if (doneA !== doneB) return doneA ? 1 : -1;
+          if (sortMode === "value") return (Number(b.value) || 0) - (Number(a.value) || 0);
+          return a.name.localeCompare(b.name); // default: alphabetical within each periodicity group
+        });
+      }
+    });
+    return g;
+  }, [visibleBenefits, sortMode, usage, viewDate]);
+
+  // Urgency sort ignores periodicity groups entirely — it's one ranked list across every
+  // credit, ordered by whichever deadline is soonest, so a quarterly credit due in 3 days
+  // outranks a monthly one due in 20. Cash-back offers have no deadline, so they always
+  // sort to the very end regardless of days left.
+  const flatUrgencySorted = useMemo(() => {
+    if (sortMode !== "urgency") return [];
+    const refDate = viewDate || new Date();
+    const rank = (b, u) => {
+      if ((b.trackingMode || "single") === "offer") return 2;
+      return isBenefitDone(b, u) ? 1 : 0;
+    };
+    return [...visibleBenefits].sort((a, b) => {
+      const infoA = getPeriodInfo(a.periodicity, refDate, a.resetMonth, a.resetDay);
+      const infoB = getPeriodInfo(b.periodicity, refDate, b.resetMonth, b.resetDay);
+      const rankA = rank(a, usage[`${a.id}:${infoA.key}`]);
+      const rankB = rank(b, usage[`${b.id}:${infoB.key}`]);
+      if (rankA !== rankB) return rankA - rankB;
+      return infoA.daysLeft - infoB.daysLeft;
+    });
+  }, [visibleBenefits, sortMode, usage, viewDate]);
+
+  const hasAnyVisible = useMemo(() => {
+    if (sortMode === "urgency") return flatUrgencySorted.length > 0;
+    return Object.values(grouped).some((list) => list.length > 0);
+  }, [grouped, flatUrgencySorted, sortMode]);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const scopedBenefits = isAllSelected ? benefits : benefits.filter((b) => selectedCardIds.has(b.cardId));
+    const benefitsById = Object.fromEntries(scopedBenefits.map((b) => [b.id, b]));
+    let capturedThisYear = 0;
+    let remainingPotential = 0;
+    const remainingByPeriodicity = { monthly: 0, quarterly: 0, semiannual: 0, annual: 0 };
+    const capturedByBenefitMap = {};
+
+    Object.entries(usage).forEach(([k, u]) => {
+      const sep = k.indexOf(":");
+      const benefitId = k.slice(0, sep);
+      const periodKey = k.slice(sep + 1);
+      const b = benefitsById[benefitId];
+      if (!b) return;
+      if (periodKey.slice(0, 4) === String(year)) {
+        const val = redeemedValue(b, u);
+        capturedThisYear += val;
+        capturedByBenefitMap[benefitId] = (capturedByBenefitMap[benefitId] || 0) + val;
+      }
+    });
+
+    const capturedByBenefit = Object.entries(capturedByBenefitMap)
+      .map(([benefitId, total]) => ({ benefit: benefitsById[benefitId], total }))
+      .filter((e) => e.benefit && e.total > 0)
+      .sort((a, b) => b.total - a.total);
+
+    // "Total possible remaining credit" projects forward through the rest of the calendar
+    // year: whatever's left in the current period, plus every full period still to come
+    // before December 31, assuming each one gets maxed out. Only modes with a real dollar
+    // cap (single, cumulative) project forward — counters and open-ended cash-back offers
+    // don't have a cap that repeats predictably, so they only count what's on the table
+    // right now.
+    scopedBenefits.forEach((b) => {
+      const mode = b.trackingMode || "single";
+      const info = getPeriodInfo(b.periodicity, now, b.resetMonth, b.resetDay);
+      const u = usage[`${b.id}:${info.key}`];
+      const cap = Number(b.value) || 0;
+      const redeemed = redeemedValue(b, u);
+      const currentRemaining = isBenefitDone(b, u) ? 0 : Math.max(0, cap - redeemed);
+
+      let futurePeriods = 0;
+      if (mode === "single" || mode === "cumulative") {
+        if (b.periodicity === "monthly") futurePeriods = 11 - now.getMonth();
+        else if (b.periodicity === "quarterly") futurePeriods = 3 - Math.floor(now.getMonth() / 3);
+        else if (b.periodicity === "semiannual") futurePeriods = now.getMonth() < 6 ? 1 : 0;
+        // annual credits only have one period a year, so no future periods to add
+      }
+
+      const remainingForYear = currentRemaining + futurePeriods * cap;
+      remainingPotential += remainingForYear;
+      if (remainingByPeriodicity[b.periodicity] !== undefined) remainingByPeriodicity[b.periodicity] += remainingForYear;
+    });
+
+    const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
+    const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
+    return { capturedThisYear, remainingPotential, remainingByPeriodicity, capturedByBenefit, totalAnnualFees };
+  }, [usage, benefits, cards, selectedCardIds, isAllSelected]);
+
+  const historyYears = useMemo(() => {
+    const current = new Date().getFullYear();
+    const years = [];
+    for (let y = 2026; y <= current; y++) years.push(y);
+    return years;
+  }, []);
+
+  // Months selectable for backfilling past periods: January 2026 through the current month.
+  const periodOptions = useMemo(() => {
+    const now = new Date();
+    const opts = [];
+    let y = 2026;
+    let m = 0;
+    while (y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth())) {
+      const d = new Date(y, m, 1);
+      opts.push({ key: `${y}-${String(m + 1).padStart(2, "0")}`, date: d, label: d.toLocaleDateString(undefined, { month: "long", year: "numeric" }) });
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    return opts.reverse(); // most recent first
+  }, []);
+
+  const historyEntries = useMemo(() => {
+    const benefitsById = Object.fromEntries(benefits.map((b) => [b.id, b]));
+    const cardsById = Object.fromEntries(cards.map((c) => [c.id, c]));
+    const entries = [];
+    Object.entries(usage).forEach(([k, u]) => {
+      const sep = k.indexOf(":");
+      const benefitId = k.slice(0, sep);
+      const periodKey = k.slice(sep + 1);
+      if (Number(periodKey.slice(0, 4)) !== historyYear) return;
+      const b = benefitsById[benefitId];
+      if (!b) return;
+      if (!isAllSelected && !selectedCardIds.has(b.cardId)) return;
+      const { label, sortDate } = parsePeriodKey(b.periodicity, periodKey);
+      entries.push({
+        key: k,
+        periodLabel: label,
+        sortDate,
+        benefit: b,
+        card: cardsById[b.cardId],
+        redeemed: redeemedValue(b, u),
+      });
+    });
+    entries.sort((a, b) => b.sortDate - a.sortDate || a.benefit.name.localeCompare(b.benefit.name));
+    return entries;
+  }, [usage, benefits, cards, historyYear, selectedCardIds, isAllSelected]);
+
+  const historyTotal = useMemo(() => historyEntries.reduce((s, e) => s + e.redeemed, 0), [historyEntries]);
+
+  if (!loaded) {
+    return (
+      <div style={{ ...S.root, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
+        <span style={{ color: S.colors.muted, fontFamily: S.fonts.mono, fontSize: 13 }}>Loading ledger…</span>
+      </div>
+    );
+  }
+
+  const selectedCards = cards.filter((c) => selectedCardIds.has(c.id));
+  const cardScopeLabel = isAllSelected
+    ? "across all cards"
+    : selectedCards.length === 1
+    ? `on ${selectedCards[0].name}`
+    : `across ${selectedCards.length} selected cards`;
+  const cardScopeSuffix = isAllSelected
+    ? ""
+    : selectedCards.length === 1
+    ? ` · ${selectedCards[0].name}`
+    : ` · ${selectedCards.length} cards selected`;
+
+  const copyCode = () => {
+    navigator.clipboard?.writeText(ledgerCode).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 1500);
+    });
+  };
+
+  return (
+    <div style={S.root}>
+      <style>{CSS_TEXT}</style>
+
+      <div style={S.iconStrip}>
+        <div style={S.iconTile}><CatFaceIcon /></div>
+        <div style={S.iconTile}><RiverIcon /></div>
+        <div style={S.iconTile}><CatSittingIcon /></div>
+      </div>
+
+      <div style={S.header}>
+        <div>
+          <h1 style={S.h1}>Willis Family Card Benefits Ledger</h1>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {error && <div style={S.errorBanner}>{error}</div>}
+          {importError && <div style={S.errorBanner}>{importError}</div>}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            style={{ display: "none" }}
+            onChange={handleImportFile}
+          />
+          <div style={{ position: "relative" }}>
+            <button type="button" className="lg-chip" style={S.chip} onClick={() => setCodeMenuOpen((v) => !v)} title="Ledger access">
+              {userLabel ? userLabel.split(" ")[0] : "Account"}
+            </button>
+            {codeMenuOpen && (
+              <div style={S.codeMenu} onClick={(e) => e.stopPropagation()}>
+                <div style={S.codeMenuLabel}>Ledger code</div>
+                <div style={S.codeMenuCode} onClick={copyCode} title="Click to copy">
+                  {ledgerCode} {copyFeedback ? "✓ copied" : ""}
+                </div>
+                <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll sign in with Google and enter it.</div>
+                <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%", marginTop: 10 }} onClick={onSwitchLedger}>Use a different ledger</button>
+                <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%", marginTop: 8 }} onClick={onSignOut}>Sign out</button>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="lg-chip"
+            style={{ ...S.chip, ...(view === "history" ? S.chipActive : {}) }}
+            onClick={() => setView((v) => (v === "history" ? "ledger" : "history"))}
+          >
+            {view === "history" ? "Back to ledger" : "History"}
+          </button>
+          <button
+            type="button"
+            className="lg-chip"
+            style={{ ...S.chip, ...(showFees ? S.chipActive : {}) }}
+            onClick={() => setShowFees((v) => !v)}
+          >
+            {showFees ? "Hide annual fees" : "Compare to annual fees"}
+          </button>
+          <div style={S.backupGroup}>
+            <button type="button" className="lg-backupbtn" style={S.backupBtn} onClick={handleExport} aria-label="Export a backup" title="Export a backup">
+              <Download size={14} />
+            </button>
+            <div style={S.backupDivider} />
+            <button type="button" className="lg-backupbtn" style={S.backupBtn} onClick={() => fileInputRef.current?.click()} aria-label="Import a backup" title="Import a backup">
+              <Upload size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style={S.heroBox}>
+        <div style={S.heroLabel}>
+          Captured this year{cardScopeSuffix}
+        </div>
+        <div style={S.heroTopRow}>
+          <div style={S.heroValue}>{fmtMoney(stats.capturedThisYear)}</div>
+          {stats.capturedByBenefit.length > 0 && (
+            <button
+              type="button"
+              className="lg-detailtoggle"
+              style={S.detailToggleBtn}
+              onClick={() => setShowCapturedDetail((v) => !v)}
+              aria-label={showCapturedDetail ? "Hide breakdown by credit" : "Show breakdown by credit"}
+              title={showCapturedDetail ? "Hide breakdown by credit" : "Show breakdown by credit"}
+            >
+              <ChevronDown size={18} style={{ transform: showCapturedDetail ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }} />
+            </button>
+          )}
+        </div>
+        <div style={S.heroSub}>
+          {showFees
+            ? stats.capturedThisYear - stats.totalAnnualFees >= 0
+              ? `+${fmtMoneyPlain(stats.capturedThisYear - stats.totalAnnualFees)} net vs fees`
+              : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of fees`
+            : `${new Date().getFullYear()}`}
+        </div>
+        {showCapturedDetail && (
+          <div style={S.capturedDetailList}>
+            {stats.capturedByBenefit.map(({ benefit, total }) => {
+              const card = cards.find((c) => c.id === benefit.cardId);
+              return (
+                <div key={benefit.id} style={S.capturedDetailRow}>
+                  <div style={S.historyMain}>
+                    <span style={S.rowName}>{benefit.name}</span>
+                    {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
+                    {isAllSelected && card && (
+                      <span style={S.cardBadge}>
+                        <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
+                        {card.name}
+                      </span>
+                    )}
+                  </div>
+                  <div style={S.historyValue}>{fmtMoneyWhole(total)}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {showFees && (
+        <div style={S.statRow}>
+          <Stat label="Annual fees" value={fmtMoney(stats.totalAnnualFees)} sub={cardScopeLabel} />
+          <Stat
+            label="Total possible remaining credit"
+            value={fmtMoney(stats.remainingPotential)}
+            sub={
+              <div style={S.statBreakdown}>
+                <span>mo {fmtMoneyPlain(stats.remainingByPeriodicity.monthly)}</span>
+                <span>qtr {fmtMoneyPlain(stats.remainingByPeriodicity.quarterly)}</span>
+                <span>half {fmtMoneyPlain(stats.remainingByPeriodicity.semiannual)}</span>
+                <span>yr {fmtMoneyPlain(stats.remainingByPeriodicity.annual)}</span>
+              </div>
+            }
+            accent={S.colors.amber}
+          />
+        </div>
+      )}
+
+      <div style={S.walletRow}>
+        <button
+          type="button"
+          className="lg-chip"
+          style={{ ...S.chip, ...(isAllSelected ? S.chipActive : {}) }}
+          onClick={() => setSelectedCardIds(new Set())}
+          title="Show every card"
+        >
+          All cards
+        </button>
+        {cards.map((c) => (
+          <div
+            key={c.id}
+            className="lg-cardtile"
+            style={{
+              ...S.cardTile,
+              background: c.color,
+              boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset",
+              opacity: isAllSelected || selectedCardIds.has(c.id) ? 1 : 0.55,
+            }}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey) {
+                setSelectedCardIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(c.id)) next.delete(c.id);
+                  else next.add(c.id);
+                  return next;
+                });
+              } else {
+                setSelectedCardIds(new Set([c.id]));
+              }
+            }}
+            title="Click to select. Ctrl/Cmd-click to select more than one."
+          >
+            <div style={S.cardTileTop}>
+              <span style={S.cardTileName}>{c.name}</span>
+              <div className="lg-cardactions">
+                <Pencil size={13} style={S.iconBtn} onClick={(e) => { e.stopPropagation(); setCardModal(c); }} />
+                <Trash2 size={13} style={S.iconBtn} onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: "card", id: c.id, name: c.name }); }} />
+              </div>
+            </div>
+            <div style={S.cardTileIssuer}>{c.issuer}</div>
+            <div style={S.cardTileFee}>{fmtMoney(c.annualFee)} / yr</div>
+          </div>
+        ))}
+        <button type="button" className="lg-chip" style={S.addCardChip} onClick={() => setCardModal("new")}>
+          <Plus size={14} /> Add card
+        </button>
+        <button type="button" className="lg-chip" style={{ ...S.addCardChip, color: S.colors.gold, borderColor: S.colors.gold }} onClick={() => setShowTemplates(true)}>
+          <Sparkles size={14} /> Templates
+        </button>
+      </div>
+
+      {cards.length === 0 ? (
+        <EmptyState onAdd={() => setCardModal("new")} onTemplates={() => setShowTemplates(true)} />
+      ) : view === "history" ? (
+        <div style={S.ledger}>
+          <div style={S.toolbar}>
+            {historyYears.map((y) => (
+              <button
+                key={y}
+                type="button"
+                className="lg-chip"
+                style={{ ...S.chip, ...(historyYear === y ? S.chipActive : {}) }}
+                onClick={() => setHistoryYear(y)}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+
+          <div style={S.historyTotalRow}>
+            <span style={S.historyTotalLabel}>Captured in {historyYear}</span>
+            <span style={S.historyTotalValue}>{fmtMoney(historyTotal)}</span>
+          </div>
+
+          {historyEntries.length === 0 ? (
+            <div style={{ color: S.colors.muted, fontSize: 13, padding: "16px 6px" }}>
+              Nothing logged for {historyYear} yet{!isAllSelected ? " for the selected card(s)" : ""}.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {historyEntries.map((e) => (
+                <div
+                  key={e.key}
+                  className="lg-historyrow"
+                  style={S.historyRow}
+                  onClick={() => { setViewDate(e.sortDate); setView("ledger"); }}
+                  title="Click to edit this period"
+                >
+                  <div style={S.historyPeriod}>{e.periodLabel}</div>
+                  <div style={S.historyMain}>
+                    <span style={S.rowName}>{e.benefit.name}</span>
+                    {e.benefit.vendor && <span style={S.vendorTag}>{e.benefit.vendor}</span>}
+                    {isAllSelected && e.card && (
+                      <span style={S.cardBadge}>
+                        <span style={{ width: 9, height: 9, borderRadius: "50%", background: e.card.color, display: "inline-block" }} />
+                        {e.card.name}
+                      </span>
+                    )}
+                  </div>
+                  <div style={S.historyValue}>{fmtMoney(e.redeemed)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={S.ledger}>
+          <div style={S.toolbar}>
+            <div style={S.searchBox}>
+              <Search size={14} color={S.colors.muted} />
+              <input
+                style={S.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search benefits, vendors, notes…"
+              />
+            </div>
+            <select style={S.sortSelect} value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
+              <option value="name">Sort: Name (by period)</option>
+              <option value="value">Sort: Highest value (by period)</option>
+              <option value="urgency">Sort: Urgency (all credits)</option>
+              <option value="custom">Sort: Custom (drag to reorder)</option>
+            </select>
+            <select
+              style={{ ...S.sortSelect, color: viewDate ? S.colors.gold : S.colors.muted, borderColor: viewDate ? S.colors.gold : S.colors.border }}
+              value={viewDate ? periodOptions.find((o) => o.date.getFullYear() === viewDate.getFullYear() && o.date.getMonth() === viewDate.getMonth())?.key || "live" : "live"}
+              onChange={(e) => setViewDate(e.target.value === "live" ? null : periodOptions.find((o) => o.key === e.target.value)?.date || null)}
+            >
+              <option value="live">Today</option>
+              {periodOptions.map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {viewDate && (
+            <div style={S.historicalBanner}>
+              <span>
+                Editing <strong>{viewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</strong> — check off or log whatever you used that period.
+              </span>
+              <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={() => setViewDate(null)}>Back to today</button>
+            </div>
+          )}
+
+          {!hasAnyVisible && (
+            <div style={{ color: S.colors.muted, fontSize: 13, padding: "16px 6px" }}>
+              {searchQuery ? `No benefits match "${searchQuery}".` : "No benefits yet."}
+            </div>
+          )}
+
+          {sortMode === "urgency" ? (
+            flatUrgencySorted.length > 0 && (
+              <div style={S.periodSection}>
+                {flatUrgencySorted.map((b) => (
+                  <BenefitRow
+                    key={b.id}
+                    benefit={b}
+                    card={cards.find((c) => c.id === b.cardId)}
+                    showCard={isAllSelected}
+                    usage={usage}
+                    periodDate={viewDate}
+                    isHistorical={!!viewDate}
+                    onToggleSingle={toggleSingleUsage}
+                    onSetAmount={setUsageAmount}
+                    onSetCount={setUsageCount}
+                    onAddOfferAmount={addOfferAmount}
+                    onEdit={() => setBenefitModal(b)}
+                    onDelete={() => setConfirmDelete({ type: "benefit", id: b.id, name: b.name })}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            PERIODICITY.map((p) => {
+              const list = grouped[p.id];
+              if (!list || list.length === 0) return null;
+              return (
+                <div key={p.id} style={S.periodSection}>
+                  <div style={S.periodHeading}>
+                    <span>{p.label}</span>
+                    <span style={S.periodRule} />
+                  </div>
+                  {list.map((b) => (
+                    <BenefitRow
+                      key={b.id}
+                      benefit={b}
+                      card={cards.find((c) => c.id === b.cardId)}
+                      showCard={isAllSelected}
+                      usage={usage}
+                      periodDate={viewDate}
+                      isHistorical={!!viewDate}
+                      reorderable={sortMode === "custom"}
+                      isDragging={draggedBenefitId === b.id}
+                      onDragStartRow={() => setDraggedBenefitId(b.id)}
+                      onDragEndRow={() => setDraggedBenefitId(null)}
+                      onDropRow={() => { if (draggedBenefitId) reorderBenefit(draggedBenefitId, b.id); setDraggedBenefitId(null); }}
+                      onToggleSingle={toggleSingleUsage}
+                      onSetAmount={setUsageAmount}
+                      onSetCount={setUsageCount}
+                      onAddOfferAmount={addOfferAmount}
+                      onEdit={() => setBenefitModal(b)}
+                      onDelete={() => setConfirmDelete({ type: "benefit", id: b.id, name: b.name })}
+                    />
+                  ))}
+                </div>
+              );
+            })
+          )}
+          <button
+            type="button"
+            className="lg-addbenefit"
+            style={S.addBenefitBtn}
+            onClick={() => setBenefitModal({ cardId: isAllSelected ? cards[0]?.id : selectedCards[0]?.id })}
+          >
+            <Plus size={14} /> Add benefit
+          </button>
+        </div>
+      )}
+
+      {cardModal && (
+        <CardModal
+          card={cardModal === "new" ? null : cardModal}
+          nextColor={PALETTE[cards.length % PALETTE.length]}
+          onSave={saveCard}
+          onClose={() => setCardModal(null)}
+        />
+      )}
+
+      {benefitModal && (
+        <BenefitModal
+          benefit={benefitModal.id ? benefitModal : null}
+          cards={cards}
+          defaultCardId={benefitModal.cardId}
+          onSave={saveBenefit}
+          onClose={() => setBenefitModal(null)}
+        />
+      )}
+
+      {showTemplates && (
+        <Modal onClose={() => setShowTemplates(false)} title="Start from a template">
+          <div style={{ color: S.colors.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+            Common premium-card benefits to get you started, matched to each issuer's current posted terms. Terms and credits change often — check your card's current benefits guide before relying on these amounts.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {TEMPLATES.map((t) => (
+              <button type="button" key={t.name} className="lg-template" style={S.templateRow} onClick={() => addTemplate(t)}>
+                <div>
+                  <div style={{ fontFamily: S.fonts.serif, fontSize: 16, color: S.colors.text }}>{t.name}</div>
+                  <div style={{ fontSize: 12, color: S.colors.muted, marginTop: 2 }}>{t.issuer} · {fmtMoney(t.annualFee)}/yr · {t.benefits.length} benefits</div>
+                </div>
+                <Plus size={16} color={S.colors.gold} />
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {confirmDelete && (
+        <Modal onClose={() => setConfirmDelete(null)} title={`Delete ${confirmDelete.type === "card" ? "card" : "benefit"}?`}>
+          <p style={{ color: S.colors.muted, fontSize: 14, marginBottom: 20 }}>
+            {confirmDelete.type === "card"
+              ? `This removes "${confirmDelete.name}" and all of its benefits and usage history. This can't be undone.`
+              : `This removes "${confirmDelete.name}" and its usage history. This can't be undone.`}
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={() => setConfirmDelete(null)}>Cancel</button>
+            <button
+              type="button"
+              className="lg-btn-danger"
+              style={S.btnDanger}
+              onClick={() => (confirmDelete.type === "card" ? deleteCard(confirmDelete.id) : deleteBenefit(confirmDelete.id))}
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingImport && (
+        <Modal onClose={() => setPendingImport(null)} title="Import backup?">
+          <p style={{ color: S.colors.muted, fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>
+            This replaces the current ledger — {cards.length} card{cards.length === 1 ? "" : "s"} and {benefits.length} benefit{benefits.length === 1 ? "" : "s"} —
+            with {pendingImport.cards.length} card{pendingImport.cards.length === 1 ? "" : "s"} and {pendingImport.benefits.length} benefit{pendingImport.benefits.length === 1 ? "" : "s"} from the file.
+            Since this ledger is shared, it replaces it for everyone with the code. This can't be undone.
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={() => setPendingImport(null)}>Cancel</button>
+            <button type="button" className="lg-btn-danger" style={S.btnDanger} onClick={confirmImport}>Import</button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, sub, accent }) {
+  return (
+    <div style={S.statBox}>
+      <div style={S.statLabel}>{label}</div>
+      <div style={{ ...S.statValue, color: accent || S.colors.text }}>{value}</div>
+      <div style={S.statSub}>{sub}</div>
+    </div>
+  );
+}
+
+function RiverIcon() {
+  return (
+    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="56" height="56" rx="10" fill={colors.surface2} />
+      <path
+        d="M32 2 C24 12 40 18 30 28 C22 36 40 40 34 50 C30 57 34 60 34 62"
+        stroke={colors.slateBlue}
+        strokeWidth="6"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M32 2 C24 12 40 18 30 28 C22 36 40 40 34 50 C30 57 34 60 34 62"
+        stroke={colors.deepBlue}
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+        opacity="0.5"
+      />
+      <circle cx="14" cy="16" r="2" fill={colors.sage} />
+      <circle cx="48" cy="22" r="2" fill={colors.sage} />
+      <circle cx="16" cy="46" r="2" fill={colors.sage} />
+      <circle cx="46" cy="52" r="2" fill={colors.sage} />
+      <rect x="9" y="9" width="2" height="6" fill={colors.border2} />
+      <polygon points="10,1 5,10 15,10" fill={colors.sage} />
+      <polygon points="10,5 6,12 14,12" fill={colors.sage} opacity="0.85" />
+      <rect x="51" y="51" width="2" height="6" fill={colors.border2} />
+      <polygon points="52,43 47,52 57,52" fill={colors.sage} />
+      <polygon points="52,47 48,54 56,54" fill={colors.sage} opacity="0.85" />
+    </svg>
+  );
+}
+
+function CatFaceIcon() {
+  return (
+    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="14,18 22,30 10,30" fill="#EFEAE1" />
+      <polygon points="50,18 54,30 42,30" fill="#EFEAE1" />
+      <circle cx="32" cy="36" r="20" fill="#EFEAE1" />
+      <circle cx="24" cy="34" r="4.2" fill={colors.slateBlue} />
+      <circle cx="40" cy="34" r="4.2" fill={colors.slateBlue} />
+      <circle cx="24" cy="33" r="1.6" fill={colors.bg} />
+      <circle cx="40" cy="33" r="1.6" fill={colors.bg} />
+      <polygon points="32,42 29,46 35,46" fill={colors.rose} />
+      <path d="M32 46 Q32 49 29 49" stroke={colors.border2} strokeWidth="1.4" fill="none" />
+      <path d="M8 38 L20 40 M8 44 L20 42 M56 38 L44 40 M56 44 L44 42" stroke={colors.border2} strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CatSittingIcon() {
+  return (
+    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 58 C14 46 16 34 24 30 C20 24 22 16 28 14 C27 20 29 24 32 26 C35 24 37 20 36 14 C42 16 44 24 40 30 C48 34 50 46 46 58 Z" fill="#EFEAE1" />
+      <path d="M46 40 C54 42 58 50 54 58 C50 54 46 50 44 46 Z" fill="#EFEAE1" />
+      <circle cx="27" cy="32" r="3" fill={colors.slateBlue} />
+      <circle cx="37" cy="32" r="3" fill={colors.slateBlue} />
+      <circle cx="27" cy="31.3" r="1.1" fill={colors.bg} />
+      <circle cx="37" cy="31.3" r="1.1" fill={colors.bg} />
+      <polygon points="32,36 30,39 34,39" fill={colors.rose} />
+    </svg>
+  );
+}
+
+function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, isDragging, onDragStartRow, onDragEndRow, onDropRow, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onEdit, onDelete }) {
+  const mode = benefit.trackingMode || "single";
+  const info = getPeriodInfo(benefit.periodicity, periodDate || new Date(), benefit.resetMonth, benefit.resetDay);
+  const usageEntry = usage[`${benefit.id}:${info.key}`];
+  const cap = Number(benefit.value) || 0;
+  const amountUsed = mode === "cumulative" ? Math.min(Number(usageEntry?.amount) || 0, cap) : 0;
+  const offerTotal = mode === "offer" ? Number(usageEntry?.amount) || 0 : 0;
+  const count = mode === "counter" ? Number(usageEntry?.count) || 0 : 0;
+  const done = isBenefitDone(benefit, usageEntry);
+  const urgent = !done && !isHistorical && info.daysLeft <= 5 && mode !== "counter" && mode !== "offer";
+
+  const [logging, setLogging] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const openLog = () => {
+    setDraft(mode === "offer" ? "" : String(amountUsed || ""));
+    setLogging(true);
+  };
+  const saveLog = () => {
+    const n = Number(draft) || 0;
+    if (mode === "offer") {
+      onAddOfferAmount(benefit.id, info.key, n);
+    } else {
+      onSetAmount(benefit.id, info.key, Math.max(0, Math.min(n, cap)));
+    }
+    setLogging(false);
+  };
+
+  return (
+    <div
+      className="lg-row"
+      style={{ ...S.row, opacity: isDragging ? 0.4 : 1, cursor: reorderable ? "grab" : "default" }}
+      draggable={reorderable}
+      onDragStart={reorderable ? onDragStartRow : undefined}
+      onDragEnd={reorderable ? onDragEndRow : undefined}
+      onDragOver={reorderable ? (e) => e.preventDefault() : undefined}
+      onDrop={reorderable ? onDropRow : undefined}
+    >
+      {reorderable && (
+        <span style={S.dragHandle} aria-hidden="true">
+          <GripVertical size={14} />
+        </span>
+      )}
+      {mode === "single" && (
+        <button
+          type="button"
+          className="lg-check"
+          style={{ ...S.checkbox, background: done ? S.colors.sage : "transparent", borderColor: done ? S.colors.sage : S.colors.border }}
+          onClick={() => onToggleSingle(benefit.id, info.key)}
+          aria-label={done ? "Mark unused" : "Mark used"}
+        >
+          {done && <Check size={13} color="#0F1216" strokeWidth={3} />}
+        </button>
+      )}
+
+      {mode === "counter" && (
+        <div style={S.counterControl}>
+          <button type="button" className="lg-counterbtn" style={S.counterBtn} onClick={() => onSetCount(benefit.id, info.key, Math.max(0, count - 1))} aria-label="Decrease">
+            <Minus size={12} />
+          </button>
+          <span style={S.counterVal}>{count}</span>
+          <button type="button" className="lg-counterbtn" style={S.counterBtn} onClick={() => onSetCount(benefit.id, info.key, count + 1)} aria-label="Increase">
+            <Plus size={12} />
+          </button>
+        </div>
+      )}
+
+      {mode === "cumulative" && !logging && (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          <button
+            type="button"
+            className="lg-check"
+            style={{
+              ...S.checkbox,
+              borderRadius: 8,
+              overflow: "hidden",
+              position: "relative",
+              background: done ? S.colors.sage : "transparent",
+              borderColor: done ? S.colors.sage : S.colors.border,
+            }}
+            onClick={() => onSetAmount(benefit.id, info.key, done ? 0 : cap)}
+            aria-label={done ? "Mark unused" : "Mark fully used"}
+          >
+            {!done && (
+              <span
+                style={{
+                  position: "absolute", left: 0, bottom: 0, width: "100%",
+                  height: `${cap > 0 ? Math.min(100, (amountUsed / cap) * 100) : 0}%`,
+                  background: S.colors.amber, opacity: 0.4,
+                }}
+              />
+            )}
+            <span style={{ position: "relative", display: "flex" }}>
+              {done && <Check size={13} color="#0F1216" strokeWidth={3} />}
+            </span>
+          </button>
+          <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount">
+            <Pencil size={11} />
+          </button>
+        </div>
+      )}
+
+      {mode === "offer" && !logging && (
+        <button type="button" className="lg-offeradd" style={S.offerAddBtn} onClick={openLog} aria-label="Add a cash-back amount">
+          <Plus size={12} /> Add
+        </button>
+      )}
+
+      {(mode === "cumulative" || mode === "offer") && logging && (
+        <div style={S.logPopover} onClick={(e) => e.stopPropagation()}>
+          <input
+            autoFocus
+            type="number"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            style={S.logInput}
+            placeholder={mode === "offer" ? "$ earned" : undefined}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveLog();
+              if (e.key === "Escape") setLogging(false);
+            }}
+          />
+          <button type="button" style={S.logBtn} onClick={saveLog} aria-label="Save"><Check size={12} /></button>
+          <button type="button" style={S.logBtnGhost} onClick={() => setLogging(false)} aria-label="Cancel"><X size={12} /></button>
+        </div>
+      )}
+
+      <div style={S.rowMain}>
+        <div style={S.rowTop}>
+          <span style={{ ...S.rowName, textDecoration: done ? "line-through" : "none", color: done ? S.colors.muted : S.colors.text }}>
+            {benefit.name}
+          </span>
+          {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
+          {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
+          {showCard && card && (
+            <span style={S.cardBadge}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
+              {card.name}
+            </span>
+          )}
+        </div>
+        {benefit.notes && <div style={S.rowNotes}>{benefit.notes}</div>}
+        {mode !== "offer" && (
+          <div style={S.progressTrack}>
+            <div
+              style={{
+                ...S.progressFill,
+                width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, (amountUsed / cap) * 100) : 0) : info.fracElapsed * 100}%`,
+                background: done ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
+              }}
+            />
+          </div>
+        )}
+      </div>
+      <div style={S.rowRight}>
+        <div style={S.rowValue}>
+          {mode === "cumulative"
+            ? `${fmtMoneyPlain(amountUsed)} / ${fmtMoney(cap)}`
+            : mode === "counter"
+            ? benefit.targetCount
+              ? `${count} / ${benefit.targetCount}`
+              : `${count}×`
+            : mode === "offer"
+            ? fmtMoneyPlain(offerTotal)
+            : fmtMoney(cap)}
+        </div>
+        <div style={{ ...S.rowDays, color: urgent ? S.colors.rose : S.colors.muted }}>
+          {mode === "counter" || mode === "offer" || done || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
+        </div>
+      </div>
+      <div className="lg-rowactions" style={S.rowActions}>
+        <Pencil size={13} style={S.iconBtn} onClick={onEdit} />
+        <Trash2 size={13} style={S.iconBtn} onClick={onDelete} />
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ onAdd, onTemplates }) {
+  return (
+    <div style={S.empty}>
+      <div style={{ fontFamily: S.fonts.serif, fontSize: 22, color: S.colors.text, marginBottom: 8 }}>No cards yet</div>
+      <div style={{ color: S.colors.muted, fontSize: 14, marginBottom: 20, maxWidth: 420 }}>
+        Add a card and its benefits, or start from a template for a common premium card.
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button type="button" className="lg-btn-primary" style={S.btnPrimary} onClick={onAdd}>Add a card</button>
+        <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onTemplates}>Use a template</button>
+      </div>
+    </div>
+  );
+}
+
+function Modal({ children, onClose, title }) {
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={S.modalHeader}>
+          <span style={S.modalTitle}>{title}</span>
+          <X size={18} style={S.iconBtn} onClick={onClose} />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CardModal({ card, nextColor, onSave, onClose }) {
+  const [name, setName] = useState(card?.name || "");
+  const [issuer, setIssuer] = useState(card?.issuer || "");
+  const [annualFee, setAnnualFee] = useState(card?.annualFee ?? "");
+  const [color, setColor] = useState(card?.color || nextColor);
+  const [nameError, setNameError] = useState(false);
+
+  const handleSave = () => {
+    if (name.trim().length === 0) {
+      setNameError(true);
+      return;
+    }
+    onSave({ id: card?.id || uid(), name: name.trim(), issuer: issuer.trim(), annualFee: Number(annualFee) || 0, color });
+  };
+
+  return (
+    <Modal onClose={onClose} title={card ? "Edit card" : "Add card"}>
+      <Field label="Card name">
+        <input
+          style={{ ...S.input, borderColor: nameError ? S.colors.rose : S.colors.border }}
+          value={name}
+          onChange={(e) => { setName(e.target.value); if (nameError) setNameError(false); }}
+          placeholder="e.g. Amex Platinum"
+          autoFocus
+        />
+        {nameError && <div style={S.fieldError}>Give the card a name before saving.</div>}
+      </Field>
+      <Field label="Issuer">
+        <input style={S.input} value={issuer} onChange={(e) => setIssuer(e.target.value)} placeholder="e.g. American Express" />
+      </Field>
+      <Field label="Annual fee">
+        <input style={S.input} type="number" value={annualFee} onChange={(e) => setAnnualFee(e.target.value)} placeholder="e.g. 695" />
+      </Field>
+      <Field label="Color">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: 280 }}>
+          {PALETTE.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setColor(c)}
+              style={{ width: 26, height: 26, borderRadius: 6, background: c, border: color === c ? `2px solid ${S.colors.gold}` : "2px solid transparent", cursor: "pointer" }}
+            />
+          ))}
+        </div>
+      </Field>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+        <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onClose}>Cancel</button>
+        <button type="button" className="lg-btn-primary" style={S.btnPrimary} onClick={handleSave}>
+          Save card
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
+  const [name, setName] = useState(benefit?.name || "");
+  const [vendor, setVendor] = useState(benefit?.vendor || "");
+  const [value, setValue] = useState(benefit?.value ?? "");
+  const [periodicity, setPeriodicity] = useState(benefit?.periodicity || "monthly");
+  const [trackingMode, setTrackingMode] = useState(benefit?.trackingMode || "single");
+  const [targetCount, setTargetCount] = useState(benefit?.targetCount ?? "");
+  const [resetMonth, setResetMonth] = useState(benefit?.resetMonth ?? "");
+  const [resetDay, setResetDay] = useState(benefit?.resetDay ?? "");
+  const [notes, setNotes] = useState(benefit?.notes || "");
+  const [cardId, setCardId] = useState(benefit?.cardId || defaultCardId || cards[0]?.id);
+  const [nameError, setNameError] = useState(false);
+
+  if (cards.length === 0) {
+    return (
+      <Modal onClose={onClose} title="Add benefit">
+        <div style={{ color: S.colors.muted, fontSize: 14, marginBottom: 18 }}>
+          Add a card first — every benefit needs to belong to one.
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onClose}>Close</button>
+        </div>
+      </Modal>
+    );
+  }
+
+  const handleSave = () => {
+    if (name.trim().length === 0) {
+      setNameError(true);
+      return;
+    }
+    const effectivePeriodicity = trackingMode === "offer" ? "monthly" : periodicity;
+    const useCustomReset = effectivePeriodicity === "annual" && resetMonth && resetDay;
+    onSave({
+      id: benefit?.id || uid(),
+      cardId,
+      name: name.trim(),
+      vendor: vendor.trim(),
+      value: trackingMode === "offer" ? 0 : Number(value) || 0,
+      periodicity: effectivePeriodicity,
+      trackingMode,
+      targetCount: trackingMode === "counter" ? Number(targetCount) || undefined : undefined,
+      resetMonth: useCustomReset ? Number(resetMonth) : undefined,
+      resetDay: useCustomReset ? Number(resetDay) : undefined,
+      notes: notes.trim(),
+    });
+  };
+
+  const modeHint = TRACKING_MODES.find((m) => m.id === trackingMode)?.hint;
+
+  return (
+    <Modal onClose={onClose} title={benefit ? "Edit benefit" : "Add benefit"}>
+      <Field label="Card">
+        <select style={S.input} value={cardId} onChange={(e) => setCardId(e.target.value)}>
+          {cards.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Benefit name">
+        <input
+          style={{ ...S.input, borderColor: nameError ? S.colors.rose : S.colors.border }}
+          value={name}
+          onChange={(e) => { setName(e.target.value); if (nameError) setNameError(false); }}
+          placeholder="e.g. Uber Cash"
+          autoFocus
+        />
+        {nameError && <div style={S.fieldError}>Give the benefit a name before saving.</div>}
+      </Field>
+      <Field label="Vendor (optional)">
+        <input style={S.input} value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="e.g. Uber, Resy, DoorDash" />
+      </Field>
+      <Field label="Tracking">
+        <select style={S.input} value={trackingMode} onChange={(e) => setTrackingMode(e.target.value)}>
+          {TRACKING_MODES.map((m) => (
+            <option key={m.id} value={m.id}>{m.label}</option>
+          ))}
+        </select>
+        {modeHint && <div style={{ fontSize: 12, color: S.colors.muted, marginTop: 6, lineHeight: 1.4 }}>{modeHint}</div>}
+      </Field>
+      {trackingMode === "offer" ? (
+        <div style={{ fontSize: 12, color: S.colors.muted, marginBottom: 14, lineHeight: 1.4 }}>
+          No dollar cap and no set periodicity to configure — this always resets monthly, and you'll log each amount as you earn it.
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <Field label="Value ($)">
+                <input style={S.input} type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="e.g. 15" />
+              </Field>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Field label="Resets">
+                <select style={S.input} value={periodicity} onChange={(e) => setPeriodicity(e.target.value)}>
+                  {PERIODICITY.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </div>
+          {periodicity === "annual" && (
+            <Field label="Reset date (optional)">
+              <div style={{ display: "flex", gap: 12 }}>
+                <select style={S.input} value={resetMonth} onChange={(e) => setResetMonth(e.target.value)}>
+                  <option value="">Month</option>
+                  {MONTH_NAMES.map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <input style={S.input} type="number" min="1" max="31" value={resetDay} onChange={(e) => setResetDay(e.target.value)} placeholder="Day" />
+              </div>
+              <div style={{ fontSize: 12, color: S.colors.muted, marginTop: 6, lineHeight: 1.4 }}>
+                Leave blank for a calendar-year credit (Jan 1–Dec 31). Set this for credits tied to your account anniversary, like Chase's $300 travel credit.
+              </div>
+            </Field>
+          )}
+        </>
+      )}
+      {trackingMode === "counter" && (
+        <Field label="Included uses (optional)">
+          <input style={S.input} type="number" value={targetCount} onChange={(e) => setTargetCount(e.target.value)} placeholder="e.g. 4" />
+        </Field>
+      )}
+      <Field label="Notes (optional)">
+        <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="How to redeem, restrictions, etc." />
+      </Field>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+        <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onClose}>Cancel</button>
+        <button type="button" className="lg-btn-primary" style={S.btnPrimary} onClick={handleSave}>
+          Save benefit
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: S.colors.muted, marginBottom: 6, fontFamily: S.fonts.mono }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+/* ---------------- Inline icons (replacing lucide-react, which needs npm) ---------------- */
+function Icon({ children, size = 16, color, strokeWidth = 2, style, onClick, ...rest }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color || "currentColor"} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+      style={style} onClick={onClick} {...rest}
+    >
+      {children}
+    </svg>
+  );
+}
+function Plus(p) { return <Icon {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>; }
+function Minus(p) { return <Icon {...p}><line x1="5" y1="12" x2="19" y2="12" /></Icon>; }
+function X(p) { return <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>; }
+function Check(p) { return <Icon {...p}><polyline points="20 6 9 17 4 12" /></Icon>; }
+function Search(p) { return <Icon {...p}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></Icon>; }
+function Download(p) { return <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>; }
+function Upload(p) { return <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></Icon>; }
+function ChevronDown(p) { return <Icon {...p}><polyline points="6 9 12 15 18 9" /></Icon>; }
+function Pencil(p) { return <Icon {...p}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-4.5Z" /><path d="m15.5 5.5 3 3" /></Icon>; }
+function Trash2(p) { return <Icon {...p}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></Icon>; }
+function GripVertical(p) {
+  const c = p.color || "currentColor";
+  return (
+    <Icon {...p}>
+      <circle cx="9" cy="5" r="1" fill={c} stroke="none" /><circle cx="9" cy="12" r="1" fill={c} stroke="none" /><circle cx="9" cy="19" r="1" fill={c} stroke="none" />
+      <circle cx="15" cy="5" r="1" fill={c} stroke="none" /><circle cx="15" cy="12" r="1" fill={c} stroke="none" /><circle cx="15" cy="19" r="1" fill={c} stroke="none" />
+    </Icon>
+  );
+}
+function Sparkles(p) {
+  const c = p.color || "currentColor";
+  return (
+    <Icon {...p}>
+      <path d="M12 3v2.5M12 18.5V21M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M3 12h2.5M18.5 12H21M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" />
+      <path d="M12 7.5a4.5 4.5 0 0 0 4.5 4.5 4.5 4.5 0 0 0-4.5 4.5 4.5 4.5 0 0 0-4.5-4.5A4.5 4.5 0 0 0 12 7.5Z" fill={c} stroke="none" />
+    </Icon>
+  );
+}
+
+const colors = {
+  bg: "#14171C",
+  surface: "#1B1F26",
+  surface2: "#20252D",
+  border: "#2C333D",
+  border2: "#394048",
+  text: "#EFEAE1",
+  muted: "#8D93A0",
+  gold: "#B8925A",
+  sage: "#6E9C82",
+  amber: "#C98A46",
+  rose: "#A85068",
+  deepBlue: "#23395B",
+  wine: "#6B2737",
+  slateBlue: "#4C7EA8",
+};
+
+const fonts = {
+  serif: "'Fraunces', Georgia, serif",
+  mono: "'IBM Plex Mono', 'SF Mono', monospace",
+  sans: "'IBM Plex Sans', system-ui, sans-serif",
+};
+
+const S = {
+  colors,
+  fonts,
+  root: {
+    background: colors.bg,
+    color: colors.text,
+    fontFamily: fonts.sans,
+    padding: "28px 24px 60px",
+    minHeight: 400,
+    borderRadius: 12,
+  },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 10 },
+  iconStrip: { display: "flex", justifyContent: "space-between", marginBottom: 16 },
+  iconTile: { width: 56, height: 56, borderRadius: 12, background: colors.surface, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  eyebrow: { fontSize: 12, color: colors.gold, fontFamily: fonts.mono, letterSpacing: "0.02em", marginBottom: 6 },
+  h1: { fontFamily: fonts.serif, fontWeight: 500, fontSize: 32, margin: 0, letterSpacing: "-0.01em" },
+  errorBanner: { fontSize: 12, color: colors.rose, fontFamily: fonts.mono, padding: "6px 10px", border: `1px solid ${colors.rose}`, borderRadius: 6 },
+  historicalBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", fontSize: 13, color: colors.text, background: "rgba(184,146,90,0.12)", border: `1px solid ${colors.gold}`, borderRadius: 8, padding: "10px 14px", margin: "12px 0" },
+  statRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1, background: colors.border, marginBottom: 28, borderRadius: 8, overflow: "hidden" },
+  heroBox: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "22px 24px", marginBottom: 20 },
+  heroLabel: { fontSize: 13, color: colors.muted, fontFamily: fonts.mono, marginBottom: 6 },
+  heroTopRow: { display: "flex", alignItems: "center", gap: 8 },
+  heroValue: { fontSize: 48, lineHeight: 1.05, fontFamily: fonts.mono, fontWeight: 500, color: colors.sage },
+  heroSub: { fontSize: 13, color: colors.muted, marginTop: 8 },
+  detailToggleBtn: { width: 30, height: 30, borderRadius: "50%", border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6 },
+  capturedDetailList: { display: "flex", flexDirection: "column", marginTop: 16, borderTop: `1px solid ${colors.border}`, paddingTop: 8 },
+  capturedDetailRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "8px 2px", borderBottom: `1px solid ${colors.border}` },
+  statBox: { background: colors.surface, padding: "14px 16px" },
+  statLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 8 },
+  statValue: { fontSize: 22, fontFamily: fonts.mono, fontWeight: 500 },
+  statSub: { fontSize: 11, color: colors.muted, marginTop: 4 },
+  statBreakdown: { display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10.5, color: colors.muted, marginTop: 4, fontFamily: fonts.mono },
+  backupGroup: { display: "flex", alignItems: "center", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: "hidden" },
+  backupBtn: { width: 32, height: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: colors.muted, cursor: "pointer" },
+  backupDivider: { width: 1, height: 16, background: colors.border },
+  walletRow: { display: "flex", gap: 10, overflowX: "auto", overflowY: "visible", paddingTop: 18, paddingBottom: 10, marginBottom: 8, alignItems: "flex-start" },
+  chip: { flexShrink: 0, background: colors.surface, border: `1px solid ${colors.border}`, color: colors.muted, borderRadius: 20, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans },
+  chipActive: { background: colors.surface2, color: colors.text, borderColor: colors.gold },
+  addCardChip: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 10, padding: "0 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, height: 118 },
+  cardTile: { flexShrink: 0, width: 200, height: 118, borderRadius: 10, padding: "14px 16px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, position: "relative", overflow: "hidden", boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset" },
+  cardTileTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
+  cardTileName: {
+    fontFamily: fonts.serif,
+    fontSize: 15.5,
+    lineHeight: 1.25,
+    color: "#F4F1EA",
+    overflowWrap: "break-word",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  cardTileIssuer: { fontSize: 11.5, color: "rgba(244,241,234,0.65)", lineHeight: 1.3 },
+  cardTileFee: { fontFamily: fonts.mono, fontSize: 12, color: "rgba(244,241,234,0.85)" },
+  ledger: { display: "flex", flexDirection: "column", gap: 22, marginTop: 18 },
+  toolbar: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
+  searchBox: { display: "flex", alignItems: "center", gap: 8, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "7px 10px", flex: "1 1 220px", minWidth: 180 },
+  searchInput: { background: "transparent", border: "none", outline: "none", color: colors.text, fontSize: 13, fontFamily: fonts.sans, width: "100%" },
+  sortSelect: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "7px 10px", color: colors.muted, fontSize: 13, fontFamily: fonts.sans, cursor: "pointer" },
+  historyTotalRow: { display: "flex", justifyContent: "space-between", alignItems: "baseline", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "12px 16px", margin: "14px 0" },
+  historyTotalLabel: { fontSize: 13, color: colors.muted, fontFamily: fonts.mono },
+  historyTotalValue: { fontSize: 20, fontFamily: fonts.mono, fontWeight: 500, color: colors.sage },
+  historyRow: { display: "flex", alignItems: "center", gap: 14, padding: "10px 6px", borderBottom: `1px solid ${colors.border}`, cursor: "pointer" },
+  historyPeriod: { width: 110, flexShrink: 0, fontSize: 12, color: colors.muted, fontFamily: fonts.mono },
+  historyMain: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  historyValue: { fontFamily: fonts.mono, fontSize: 13.5, flexShrink: 0, color: colors.sage },
+  periodSection: { display: "flex", flexDirection: "column" },
+  periodHeading: { display: "flex", alignItems: "center", gap: 12, fontFamily: fonts.mono, fontSize: 12, color: colors.gold, marginBottom: 10 },
+  periodRule: { flex: 1, height: 1, background: colors.border },
+  row: { display: "flex", alignItems: "center", gap: 14, padding: "12px 6px", borderBottom: `1px solid ${colors.border}` },
+  checkbox: { width: 22, height: 22, borderRadius: 6, border: "1.5px solid", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" },
+  counterControl: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
+  counterBtn: { width: 20, height: 20, borderRadius: 5, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  counterVal: { fontFamily: fonts.mono, fontSize: 13, minWidth: 14, textAlign: "center" },
+  logPopover: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
+  logInput: { width: 56, background: colors.bg, border: `1px solid ${colors.gold}`, borderRadius: 6, padding: "3px 6px", color: colors.text, fontSize: 12, fontFamily: fonts.mono, boxSizing: "border-box" },
+  logBtn: { width: 20, height: 20, borderRadius: 5, border: "none", background: colors.sage, color: "#0F1216", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  logBtnGhost: { width: 20, height: 20, borderRadius: 5, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  logPartialBtn: { width: 18, height: 18, borderRadius: 5, border: `1px solid transparent`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  offerAddBtn: { display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
+  rowMain: { flex: 1, minWidth: 0 },
+  rowTop: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  rowName: { fontSize: 14.5 },
+  vendorTag: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, background: colors.surface2, borderRadius: 4, padding: "1px 6px" },
+  offerTag: { fontSize: 11, color: colors.amber, fontFamily: fonts.mono, background: "rgba(201,138,70,0.14)", borderRadius: 4, padding: "1px 6px" },
+  cardBadge: { display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: colors.muted, fontFamily: fonts.mono },
+  dragHandle: { display: "flex", alignItems: "center", color: colors.muted, cursor: "grab", flexShrink: 0 },
+  rowNotes: { fontSize: 12, color: colors.muted, marginTop: 3, maxWidth: 480 },
+  progressTrack: { height: 3, background: colors.border, borderRadius: 2, marginTop: 8, overflow: "hidden", maxWidth: 200 },
+  progressFill: { height: "100%", borderRadius: 2 },
+  rowRight: { textAlign: "right", flexShrink: 0, width: 100 },
+  rowValue: { fontFamily: fonts.mono, fontSize: 13.5 },
+  rowDays: { fontSize: 11, fontFamily: fonts.mono, marginTop: 3 },
+  rowActions: { display: "flex", gap: 8, flexShrink: 0, opacity: 0 },
+  addBenefitBtn: { alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, marginTop: 6 },
+  iconBtn: { color: colors.muted, cursor: "pointer" },
+  empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "50px 20px" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(10,12,15,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 },
+  modal: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 22, width: 380, maxWidth: "100%", maxHeight: "85vh", overflowY: "auto" },
+  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
+  modalTitle: { fontFamily: fonts.serif, fontSize: 19, color: colors.text },
+  input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 11px", color: colors.text, fontSize: 14, fontFamily: fonts.sans, boxSizing: "border-box" },
+  fieldError: { fontSize: 12, color: colors.rose, marginTop: 6, fontFamily: fonts.sans },
+  btnPrimary: { background: colors.gold, color: "#181410", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
+  btnGhost: { background: "transparent", color: colors.muted, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans },
+  btnDanger: { background: colors.rose, color: "#1a0d10", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
+  templateRow: { display: "flex", justifyContent: "space-between", alignItems: "center", background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", textAlign: "left", width: "100%" },
+  codeMenu: { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 260, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 14, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
+  codeMenuLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 6 },
+  codeMenuCode: { fontFamily: fonts.mono, fontSize: 16, color: colors.gold, cursor: "pointer", marginBottom: 8, letterSpacing: "0.02em" },
+  codeMenuHint: { fontSize: 11.5, color: colors.muted, lineHeight: 1.4 },
+};
+
+const CSS_TEXT = `
+  .lg-row:hover { background: rgba(255,255,255,0.02); }
+  .lg-row:hover .lg-rowactions { opacity: 1 !important; }
+  .lg-cardtile { transition: opacity 0.15s ease, transform 0.15s ease; }
+  .lg-cardtile:hover { transform: translateY(-2px); opacity: 1 !important; }
+  .lg-cardactions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s ease; }
+  .lg-cardtile:hover .lg-cardactions { opacity: 1; }
+  .lg-cardactions svg { color: rgba(244,241,234,0.8); }
+  .lg-check:hover { border-color: ${colors.gold} !important; }
+  .lg-counterbtn:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
+  .lg-logpartial:hover { color: ${colors.gold} !important; }
+  .lg-offeradd:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
+  .lg-historyrow:hover { background: rgba(255,255,255,0.03); }
+  .lg-backupbtn:hover { color: ${colors.gold} !important; background: rgba(255,255,255,0.04); }
+  .lg-detailtoggle:hover { border-color: ${colors.gold} !important; color: ${colors.gold} !important; }
+  .lg-chip:hover, .lg-addbenefit:hover, .lg-addcard:hover { border-color: ${colors.gold}; color: ${colors.text}; }
+  .lg-btn-primary:hover { filter: brightness(1.08); }
+  .lg-btn-ghost:hover { border-color: ${colors.border2}; color: ${colors.text}; }
+  .lg-btn-danger:hover { filter: brightness(1.1); }
+  .lg-template:hover { border-color: ${colors.gold}; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: ${colors.gold} !important; }
+  ::-webkit-scrollbar { height: 6px; width: 6px; }
+  ::-webkit-scrollbar-thumb { background: ${colors.border2}; border-radius: 4px; }
+`;
+
+/* ---------------- Auth + instance-code gate ---------------- */
+const AUTH_S = {
+  wrap: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: colors.bg, padding: 24 },
+  card: { width: 380, maxWidth: "100%", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 14, padding: 32, textAlign: "center" },
+  title: { fontFamily: fonts.serif, fontSize: 26, color: colors.text, marginBottom: 8 },
+  sub: { fontSize: 13.5, color: colors.muted, lineHeight: 1.5, marginBottom: 24 },
+  googleBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", background: colors.text, color: "#181410", border: "none", borderRadius: 8, padding: "11px 16px", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: fonts.sans },
+  divider: { height: 1, background: colors.border, margin: "22px 0" },
+  choiceRow: { display: "flex", flexDirection: "column", gap: 10 },
+  input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "10px 12px", color: colors.text, fontSize: 15, fontFamily: fonts.mono, textAlign: "center", letterSpacing: "0.04em", boxSizing: "border-box", textTransform: "uppercase" },
+  error: { fontSize: 12.5, color: colors.rose, marginTop: 10 },
+  signedInAs: { fontSize: 12, color: colors.muted, marginBottom: 18, fontFamily: fonts.mono },
+};
+
+function AuthGate() {
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState(null);
+  const [ledgerCode, setLedgerCode] = useState(null);
+  const [resolvingCode, setResolvingCode] = useState(false);
+  const [mode, setMode] = useState("choose"); // "choose" | "join"
+  const [joinDraft, setJoinDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    return auth.onAuthStateChanged((u) => {
+      setUser(u);
+      setAuthChecked(true);
+      setError(null);
+      if (u) {
+        const cached = loadLocalCode(u.uid);
+        if (cached) {
+          setResolvingCode(true);
+          db.collection(LEDGERS_COLLECTION).doc(cached).get().then((snap) => {
+            if (snap.exists) {
+              setLedgerCode(cached);
+            } else {
+              forgetLocalCode(u.uid);
+              setLedgerCode(null);
+            }
+            setResolvingCode(false);
+          }).catch(() => setResolvingCode(false));
+        } else {
+          setLedgerCode(null);
+        }
+      } else {
+        setLedgerCode(null);
+      }
+    });
+  }, []);
+
+  const signIn = () => {
+    setBusy(true);
+    setError(null);
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .catch((e) => setError(e.code === "auth/popup-closed-by-user" ? null : "Couldn't sign in — try again."))
+      .finally(() => setBusy(false));
+  };
+
+  const signOut = () => {
+    forgetLocalCode(user?.uid);
+    setLedgerCode(null);
+    auth.signOut();
+  };
+
+  const switchLedger = () => {
+    forgetLocalCode(user?.uid);
+    setLedgerCode(null);
+    setMode("choose");
+    setJoinDraft("");
+  };
+
+  const startNew = () => {
+    setBusy(true);
+    setError(null);
+    const code = genLedgerCode();
+    db.collection(LEDGERS_COLLECTION).doc(code).set({ ...buildDefaultSeed(), createdAt: new Date().toISOString() })
+      .then(() => {
+        saveLocalCode(user.uid, code);
+        setLedgerCode(code);
+      })
+      .catch(() => setError("Couldn't start a new ledger — try again."))
+      .finally(() => setBusy(false));
+  };
+
+  const joinExisting = () => {
+    const code = joinDraft.trim().toUpperCase();
+    if (!code) return;
+    setBusy(true);
+    setError(null);
+    db.collection(LEDGERS_COLLECTION).doc(code).get()
+      .then((snap) => {
+        if (!snap.exists) {
+          setError("No ledger found with that code — double check it and try again.");
+          return;
+        }
+        saveLocalCode(user.uid, code);
+        setLedgerCode(code);
+      })
+      .catch(() => setError("Couldn't check that code — try again."))
+      .finally(() => setBusy(false));
+  };
+
+  if (!authChecked || resolvingCode) {
+    return (
+      <div style={AUTH_S.wrap}>
+        <span style={{ color: colors.muted, fontFamily: fonts.mono, fontSize: 13 }}>Loading…</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={AUTH_S.wrap}>
+        <div style={AUTH_S.card}>
+          <div style={AUTH_S.title}>Perkfection</div>
+          <div style={AUTH_S.sub}>Sign in with Google to open a shared benefits ledger.</div>
+          <button type="button" style={AUTH_S.googleBtn} onClick={signIn} disabled={busy}>
+            Sign in with Google
+          </button>
+          {error && <div style={AUTH_S.error}>{error}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  if (!ledgerCode) {
+    return (
+      <div style={AUTH_S.wrap}>
+        <div style={AUTH_S.card}>
+          <div style={AUTH_S.signedInAs}>Signed in as {user.email}</div>
+          <div style={AUTH_S.title}>Open a ledger</div>
+          {mode === "choose" ? (
+            <>
+              <div style={AUTH_S.sub}>Start a brand-new shared ledger, or join one someone already started by entering its code.</div>
+              <div style={AUTH_S.choiceRow}>
+                <button type="button" className="lg-btn-primary" style={S.btnPrimary} onClick={startNew} disabled={busy}>
+                  Start a new ledger
+                </button>
+                <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={() => setMode("join")} disabled={busy}>
+                  Join with a code
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={AUTH_S.sub}>Enter the code whoever started this ledger shared with you.</div>
+              <input
+                style={AUTH_S.input}
+                value={joinDraft}
+                onChange={(e) => setJoinDraft(e.target.value)}
+                placeholder="e.g. PERK-7X2"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") joinExisting(); }}
+              />
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, flex: 1 }} onClick={() => { setMode("choose"); setError(null); }} disabled={busy}>Back</button>
+                <button type="button" className="lg-btn-primary" style={{ ...S.btnPrimary, flex: 1 }} onClick={joinExisting} disabled={busy}>Join</button>
+              </div>
+            </>
+          )}
+          {error && <div style={AUTH_S.error}>{error}</div>}
+          <div style={{ ...AUTH_S.divider }} />
+          <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%" }} onClick={signOut}>Sign out</button>
+        </div>
+      </div>
+    );
+  }
+
+  const instanceRef = db.collection(LEDGERS_COLLECTION).doc(ledgerCode);
+  return (
+    <BenefitsLedger
+      instanceRef={instanceRef}
+      ledgerCode={ledgerCode}
+      userLabel={user.displayName || user.email}
+      onSignOut={signOut}
+      onSwitchLedger={switchLedger}
+    />
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<AuthGate />);
+</script>
+</body>
+</html>
