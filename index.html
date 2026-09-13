@@ -65,6 +65,11 @@ function loadLocalCode(uid) { const k = localCodeKey(uid); if (!k) return null; 
 function saveLocalCode(uid, code) { const k = localCodeKey(uid); if (k) { try { localStorage.setItem(k, code); } catch (e) {} } }
 function forgetLocalCode(uid) { const k = localCodeKey(uid); if (k) { try { localStorage.removeItem(k); } catch (e) {} } }
 
+function localNameKey(uid) { return uid ? `perkfection:name:${uid}` : null; }
+function loadLocalName(uid) { const k = localNameKey(uid); if (!k) return null; try { return localStorage.getItem(k); } catch (e) { return null; } }
+function saveLocalName(uid, name) { const k = localNameKey(uid); if (k) { try { localStorage.setItem(k, name); } catch (e) {} } }
+function forgetLocalName(uid) { const k = localNameKey(uid); if (k) { try { localStorage.removeItem(k); } catch (e) {} } }
+
 const STORAGE_KEY = "benefits-ledger-v1"; // unused now; kept for reference
 
 const PALETTE = [
@@ -1634,7 +1639,7 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
         <div style={S.codeMenuCode} onClick={copyCode} title="Click to copy">
           {ledgerCode} {copyFeedback ? "✓ copied" : ""}
         </div>
-        <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll sign in with Google and enter it.</div>
+        <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll enter it and pick a name to join.</div>
       </Field>
 
       <Field label="Backup">
@@ -1648,11 +1653,11 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
         </div>
       </Field>
 
-      <Field label="Account">
+      <Field label="You're viewing as">
         <div style={{ fontSize: 12, color: S.colors.muted, marginBottom: 10, fontFamily: S.fonts.mono }}>{userLabel}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSwitchLedger}>Use a different ledger</button>
-          <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSignOut}>Sign out</button>
+          <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSignOut}>Change name</button>
         </div>
       </Field>
     </Modal>
@@ -2109,7 +2114,6 @@ const AUTH_S = {
   card: { width: 380, maxWidth: "100%", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 14, padding: 32, textAlign: "center" },
   title: { fontFamily: fonts.serif, fontSize: 26, color: colors.text, marginBottom: 8 },
   sub: { fontSize: 13.5, color: colors.muted, lineHeight: 1.5, marginBottom: 24 },
-  googleBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", background: colors.text, color: "#181410", border: "none", borderRadius: 8, padding: "11px 16px", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: fonts.sans },
   divider: { height: 1, background: colors.border, margin: "22px 0" },
   choiceRow: { display: "flex", flexDirection: "column", gap: 10 },
   input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "10px 12px", color: colors.text, fontSize: 15, fontFamily: fonts.mono, textAlign: "center", letterSpacing: "0.04em", boxSizing: "border-box", textTransform: "uppercase" },
@@ -2120,6 +2124,9 @@ const AUTH_S = {
 function AuthGate() {
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState(null);
+  const [displayName, setDisplayName] = useState("");
+  const [needsName, setNeedsName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const [ledgerCode, setLedgerCode] = useState(null);
   const [resolvingCode, setResolvingCode] = useState(false);
   const [mode, setMode] = useState("choose"); // "choose" | "join"
@@ -2129,53 +2136,64 @@ function AuthGate() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
+  // Both of Firebase's normal Google sign-in methods fail here in practice:
+  // signInWithPopup can't open a popup inside an installed iOS home-screen
+  // PWA (no browser chrome to open one in), and signInWithRedirect breaks on
+  // Safari because the OAuth round-trip bounces through this project's
+  // authDomain (two-forks-32e3d.firebaseapp.com) — a different origin than
+  // this app's github.io hosting — which Safari's cross-site tracking
+  // prevention blocks. Google sign-in also wasn't restricting who could join
+  // a ledger anyway (any Google account + the right code got in) — the
+  // ledger code was always the actual access control. So: sign in silently
+  // and anonymously (works everywhere, no popup/redirect involved at all),
+  // and ask for a display name once, purely so people sharing a ledger can
+  // tell each other's changes apart.
   useEffect(() => {
     return auth.onAuthStateChanged((u) => {
+      if (!u) {
+        auth.signInAnonymously().catch(() => setError("Couldn't connect — check your connection and try reloading."));
+        return;
+      }
       setUser(u);
       setAuthChecked(true);
       setError(null);
-      if (u) {
-        const cached = loadLocalCode(u.uid);
-        if (cached) {
-          setResolvingCode(true);
-          db.collection(LEDGERS_COLLECTION).doc(cached).get().then((snap) => {
-            if (snap.exists) {
-              setLedgerCode(cached);
-            } else {
-              forgetLocalCode(u.uid);
-              setLedgerCode(null);
-            }
-            setResolvingCode(false);
-          }).catch(() => setResolvingCode(false));
-        } else {
-          setLedgerCode(null);
-        }
+      const savedName = loadLocalName(u.uid);
+      if (savedName) {
+        setDisplayName(savedName);
+        setNeedsName(false);
+      } else {
+        setNeedsName(true);
+      }
+      const cached = loadLocalCode(u.uid);
+      if (cached) {
+        setResolvingCode(true);
+        db.collection(LEDGERS_COLLECTION).doc(cached).get().then((snap) => {
+          if (snap.exists) {
+            setLedgerCode(cached);
+          } else {
+            forgetLocalCode(u.uid);
+            setLedgerCode(null);
+          }
+          setResolvingCode(false);
+        }).catch(() => setResolvingCode(false));
       } else {
         setLedgerCode(null);
       }
     });
   }, []);
 
-  // signInWithRedirect looks like the "correct" choice for Safari/PWA on paper,
-  // but in practice it bounces through this Firebase project's authDomain
-  // (two-forks-32e3d.firebaseapp.com) — a different origin than this app's
-  // github.io hosting — and Safari's cross-site tracking prevention blocks the
-  // storage handoff needed to complete that redirect, silently dropping the
-  // sign-in. Popup avoids that cross-origin relay entirely, and is already
-  // proven working on this same phone/Firebase project/hosting combination
-  // via Two-Forks.
-  const signIn = () => {
-    setBusy(true);
-    setError(null);
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-      .catch((e) => setError(e.code === "auth/popup-closed-by-user" ? null : "Couldn't sign in — try again."))
-      .finally(() => setBusy(false));
+  const saveName = () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) return;
+    saveLocalName(user.uid, trimmed);
+    setDisplayName(trimmed);
+    setNeedsName(false);
   };
 
-  const signOut = () => {
-    forgetLocalCode(user?.uid);
-    setLedgerCode(null);
-    auth.signOut();
+  const changeName = () => {
+    forgetLocalName(user?.uid);
+    setNameDraft("");
+    setNeedsName(true);
   };
 
   const switchLedger = () => {
@@ -2231,14 +2249,28 @@ function AuthGate() {
     );
   }
 
-  if (!user) {
+  if (needsName) {
     return (
       <div style={AUTH_S.wrap}>
         <div style={AUTH_S.card}>
           <div style={AUTH_S.title}>Purrkfection</div>
-          <div style={AUTH_S.sub}>Sign in with Google to open a shared benefits ledger.</div>
-          <button type="button" style={AUTH_S.googleBtn} onClick={signIn} disabled={busy}>
-            Sign in with Google
+          <div style={AUTH_S.sub}>What's your name? It just labels your changes for anyone else sharing this ledger.</div>
+          <input
+            style={{ ...AUTH_S.input, textTransform: "none", textAlign: "left", fontFamily: S.fonts.sans, letterSpacing: "normal" }}
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            placeholder="e.g. Ahmed"
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+          />
+          <button
+            type="button"
+            className="lg-btn-primary"
+            style={{ ...S.btnPrimary, width: "100%", marginTop: 14 }}
+            onClick={saveName}
+            disabled={!nameDraft.trim()}
+          >
+            Continue
           </button>
           {error && <div style={AUTH_S.error}>{error}</div>}
         </div>
@@ -2251,7 +2283,7 @@ function AuthGate() {
       <div style={AUTH_S.wrap}>
         <div style={AUTH_S.card}>
           <div style={AUTH_S.title}>Ledger created!</div>
-          <div style={AUTH_S.sub}>Share this code with anyone else who should see it — they'll sign in with Google and enter it to join.</div>
+          <div style={AUTH_S.sub}>Share this code with anyone else who should see it — they'll open the app, pick a name, and enter it to join.</div>
           <div style={{ ...S.codeMenuCode, fontSize: 24, textAlign: "center", marginBottom: 0 }} onClick={copyJustCreatedCode} title="Click to copy">
             {justCreatedCode}
           </div>
@@ -2275,7 +2307,7 @@ function AuthGate() {
     return (
       <div style={AUTH_S.wrap}>
         <div style={AUTH_S.card}>
-          <div style={AUTH_S.signedInAs}>Signed in as {user.email}</div>
+          <div style={AUTH_S.signedInAs}>Hi, {displayName}</div>
           <div style={AUTH_S.title}>Open a ledger</div>
           {mode === "choose" ? (
             <>
@@ -2308,7 +2340,7 @@ function AuthGate() {
           )}
           {error && <div style={AUTH_S.error}>{error}</div>}
           <div style={{ ...AUTH_S.divider }} />
-          <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%" }} onClick={signOut}>Sign out</button>
+          <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, width: "100%" }} onClick={changeName}>Change name</button>
         </div>
       </div>
     );
@@ -2319,8 +2351,8 @@ function AuthGate() {
     <BenefitsLedger
       instanceRef={instanceRef}
       ledgerCode={ledgerCode}
-      userLabel={user.displayName || user.email}
-      onSignOut={signOut}
+      userLabel={displayName}
+      onSignOut={changeName}
       onSwitchLedger={switchLedger}
     />
   );
