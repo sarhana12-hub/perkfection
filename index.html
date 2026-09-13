@@ -2156,21 +2156,20 @@ function AuthGate() {
     });
   }, []);
 
-  // Popups are unreliable in mobile Safari and standalone (home-screen) PWA
-  // mode — there's no reliable way for the page to regain control after one.
-  // Redirect leaves the page and comes back here; onAuthStateChanged above
-  // picks up the signed-in user once Firebase processes the return trip.
-  // getRedirectResult only exists here to surface an error if that failed.
-  useEffect(() => {
-    auth.getRedirectResult().catch((e) => {
-      if (e?.code && e.code !== "auth/no-auth-event") setError("Couldn't sign in — try again.");
-    });
-  }, []);
-
+  // signInWithRedirect looks like the "correct" choice for Safari/PWA on paper,
+  // but in practice it bounces through this Firebase project's authDomain
+  // (two-forks-32e3d.firebaseapp.com) — a different origin than this app's
+  // github.io hosting — and Safari's cross-site tracking prevention blocks the
+  // storage handoff needed to complete that redirect, silently dropping the
+  // sign-in. Popup avoids that cross-origin relay entirely, and is already
+  // proven working on this same phone/Firebase project/hosting combination
+  // via Two-Forks.
   const signIn = () => {
+    setBusy(true);
     setError(null);
-    auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
-    // no .then/.catch/.finally — the page navigates away immediately
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .catch((e) => setError(e.code === "auth/popup-closed-by-user" ? null : "Couldn't sign in — try again."))
+      .finally(() => setBusy(false));
   };
 
   const signOut = () => {
@@ -2238,7 +2237,7 @@ function AuthGate() {
         <div style={AUTH_S.card}>
           <div style={AUTH_S.title}>Purrkfection</div>
           <div style={AUTH_S.sub}>Sign in with Google to open a shared benefits ledger.</div>
-          <button type="button" style={AUTH_S.googleBtn} onClick={signIn}>
+          <button type="button" style={AUTH_S.googleBtn} onClick={signIn} disabled={busy}>
             Sign in with Google
           </button>
           {error && <div style={AUTH_S.error}>{error}</div>}
