@@ -2011,6 +2011,7 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
     if (hasError) return;
     const effectivePeriodicity = trackingMode === "offer" ? "monthly" : periodicity;
     const useCustomReset = effectivePeriodicity === "annual" && resetMonth && resetDay;
+    const targetCountValue = trackingMode === "counter" ? Number(targetCount) || undefined : undefined;
     onSave({
       id: benefit?.id || uid(),
       cardId,
@@ -2020,9 +2021,8 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
       value: trackingMode === "offer" ? 0 : Number(value) || 0,
       periodicity: effectivePeriodicity,
       trackingMode,
-      targetCount: trackingMode === "counter" ? Number(targetCount) || undefined : undefined,
-      resetMonth: useCustomReset ? Number(resetMonth) : undefined,
-      resetDay: useCustomReset ? Number(resetDay) : undefined,
+      ...(targetCountValue !== undefined ? { targetCount: targetCountValue } : {}),
+      ...(useCustomReset ? { resetMonth: Number(resetMonth), resetDay: Number(resetDay) } : {}),
       notes: notes.trim(),
     });
   };
