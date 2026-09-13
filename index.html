@@ -1447,97 +1447,99 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
           <GripVertical size={14} />
         </span>
       )}
-      {mode === "single" && (
-        <button
-          type="button"
-          className="lg-check"
-          style={{ ...S.checkbox, position: "relative", background: visuallyDone ? S.colors.sage : "transparent", borderColor: visuallyDone ? S.colors.sage : S.colors.border }}
-          onClick={() => (done ? onToggleSingle(benefit.id, info.key) : celebrate(() => onToggleSingle(benefit.id, info.key)))}
-          aria-label={done ? "Mark unused" : "Mark used"}
-          title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
-        >
-          {completing && <span className="lg-check-ring" aria-hidden="true" />}
-          {visuallyDone ? (
-            <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />
-          ) : (
-            <Check size={13} color={S.colors.muted} strokeWidth={3} style={{ opacity: 0.3 }} />
-          )}
-        </button>
-      )}
-
-      {mode === "counter" && (
-        <div style={S.counterControl}>
-          <button type="button" className="lg-counterbtn" style={S.counterBtn} onClick={() => onSetCount(benefit.id, info.key, Math.max(0, count - 1))} aria-label="Decrease">
-            <Minus size={12} />
-          </button>
-          <span style={S.counterVal}>{count}</span>
-          <button type="button" className="lg-counterbtn" style={S.counterBtn} onClick={() => onSetCount(benefit.id, info.key, count + 1)} aria-label="Increase">
-            <Plus size={12} />
-          </button>
-        </div>
-      )}
-
-      {mode === "cumulative" && !logging && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+      <div style={S.rowControls}>
+        {mode === "single" && (
           <button
             type="button"
             className="lg-check"
-            style={{
-              ...S.checkbox,
-              borderRadius: 8,
-              overflow: "hidden",
-              position: "relative",
-              background: visuallyDone ? S.colors.sage : "transparent",
-              borderColor: visuallyDone ? S.colors.sage : S.colors.border,
-            }}
-            onClick={() => (done ? onSetAmount(benefit.id, info.key, 0) : celebrate(() => onSetAmount(benefit.id, info.key, cap)))}
-            aria-label={done ? "Mark unused" : "Mark fully used"}
+            style={{ ...S.checkbox, position: "relative", background: visuallyDone ? S.colors.sage : "transparent", borderColor: visuallyDone ? S.colors.sage : S.colors.border }}
+            onClick={() => (done ? onToggleSingle(benefit.id, info.key) : celebrate(() => onToggleSingle(benefit.id, info.key)))}
+            aria-label={done ? "Mark unused" : "Mark used"}
             title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
           >
-            {!visuallyDone && (
-              <span
-                style={{
-                  position: "absolute", left: 0, bottom: 0, width: "100%",
-                  height: `${cap > 0 ? Math.min(100, (amountUsed / cap) * 100) : 0}%`,
-                  background: S.colors.amber, opacity: 0.4,
-                }}
-              />
-            )}
             {completing && <span className="lg-check-ring" aria-hidden="true" />}
-            <span style={{ position: "relative", display: "flex" }}>
-              {visuallyDone && <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />}
-            </span>
+            {visuallyDone ? (
+              <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />
+            ) : (
+              <Check size={13} color={S.colors.muted} strokeWidth={3} style={{ opacity: 0.3 }} />
+            )}
           </button>
-          <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount">
-            <Pencil size={12} /> Log
+        )}
+
+        {mode === "counter" && (
+          <div style={S.counterControl}>
+            <button type="button" className="lg-counterbtn" style={S.counterBtn} onClick={() => onSetCount(benefit.id, info.key, Math.max(0, count - 1))} aria-label="Decrease">
+              <Minus size={12} />
+            </button>
+            <span style={S.counterVal}>{count}</span>
+            <button type="button" className="lg-counterbtn" style={S.counterBtn} onClick={() => onSetCount(benefit.id, info.key, count + 1)} aria-label="Increase">
+              <Plus size={12} />
+            </button>
+          </div>
+        )}
+
+        {mode === "cumulative" && !logging && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+            <button
+              type="button"
+              className="lg-check"
+              style={{
+                ...S.checkbox,
+                borderRadius: 8,
+                overflow: "hidden",
+                position: "relative",
+                background: visuallyDone ? S.colors.sage : "transparent",
+                borderColor: visuallyDone ? S.colors.sage : S.colors.border,
+              }}
+              onClick={() => (done ? onSetAmount(benefit.id, info.key, 0) : celebrate(() => onSetAmount(benefit.id, info.key, cap)))}
+              aria-label={done ? "Mark unused" : "Mark fully used"}
+              title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
+            >
+              {!visuallyDone && (
+                <span
+                  style={{
+                    position: "absolute", left: 0, bottom: 0, width: "100%",
+                    height: `${cap > 0 ? Math.min(100, (amountUsed / cap) * 100) : 0}%`,
+                    background: S.colors.amber, opacity: 0.4,
+                  }}
+                />
+              )}
+              {completing && <span className="lg-check-ring" aria-hidden="true" />}
+              <span style={{ position: "relative", display: "flex" }}>
+                {visuallyDone && <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />}
+              </span>
+            </button>
+            <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount">
+              <Pencil size={12} /> Log
+            </button>
+          </div>
+        )}
+
+        {mode === "offer" && !logging && (
+          <button type="button" className="lg-offeradd" style={S.offerAddBtn} onClick={openLog} aria-label="Add a cash-back amount">
+            <Plus size={12} /> Add
           </button>
-        </div>
-      )}
+        )}
 
-      {mode === "offer" && !logging && (
-        <button type="button" className="lg-offeradd" style={S.offerAddBtn} onClick={openLog} aria-label="Add a cash-back amount">
-          <Plus size={12} /> Add
-        </button>
-      )}
-
-      {(mode === "cumulative" || mode === "offer") && logging && (
-        <div style={S.logPopover} onClick={(e) => e.stopPropagation()}>
-          <input
-            autoFocus
-            type="number"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            style={S.logInput}
-            placeholder={mode === "offer" ? "$ earned" : undefined}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") saveLog();
-              if (e.key === "Escape") setLogging(false);
-            }}
-          />
-          <button type="button" style={S.logBtn} onClick={saveLog} aria-label="Save"><Check size={12} /></button>
-          <button type="button" style={S.logBtnGhost} onClick={() => setLogging(false)} aria-label="Cancel"><X size={12} /></button>
-        </div>
-      )}
+        {(mode === "cumulative" || mode === "offer") && logging && (
+          <div style={S.logPopover} onClick={(e) => e.stopPropagation()}>
+            <input
+              autoFocus
+              type="number"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              style={S.logInput}
+              placeholder={mode === "offer" ? "$ earned" : undefined}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveLog();
+                if (e.key === "Escape") setLogging(false);
+              }}
+            />
+            <button type="button" style={S.logBtn} onClick={saveLog} aria-label="Save"><Check size={12} /></button>
+            <button type="button" style={S.logBtnGhost} onClick={() => setLogging(false)} aria-label="Cancel"><X size={12} /></button>
+          </div>
+        )}
+      </div>
 
       <div style={S.rowOpenArea} onClick={() => onOpenDetail(benefit.id)}>
         <div style={S.rowMain}>
@@ -2280,6 +2282,7 @@ const S = {
   periodHeading: { display: "flex", alignItems: "center", gap: 12, fontFamily: fonts.mono, fontSize: 12, color: colors.gold, marginBottom: 10 },
   periodRule: { flex: 1, height: 1, background: colors.border },
   row: { display: "flex", alignItems: "center", gap: 14, padding: "12px 6px", borderBottom: `1px solid ${colors.border}` },
+  rowControls: { display: "flex", alignItems: "center", minWidth: 88, flexShrink: 0 },
   checkbox: { width: 22, height: 22, borderRadius: 6, border: "1.5px solid", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" },
   counterControl: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
   counterBtn: { width: 20, height: 20, borderRadius: 5, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
