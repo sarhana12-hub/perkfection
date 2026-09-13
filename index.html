@@ -1543,20 +1543,17 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
 
       <div style={S.rowOpenArea} onClick={() => onOpenDetail(benefit.id)}>
         <div style={S.rowMain}>
-          <div style={S.rowTop}>
+          <div style={S.rowTopLine}>
             <span style={{ ...S.rowName, textDecoration: visuallyDone ? "line-through" : "none", color: visuallyDone ? S.colors.muted : S.colors.text }}>
               {benefit.name}
             </span>
           </div>
-          {(mode === "offer" || (showCard && card)) && (
+          {showCard && card && (
             <div style={S.rowMeta}>
-              {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
-              {showCard && card && (
-                <span style={S.cardBadge}>
-                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block", flexShrink: 0, marginTop: 4 }} />
-                  <span style={S.cardBadgeText}>{card.name}</span>
-                </span>
-              )}
+              <span style={S.cardBadge}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block", flexShrink: 0, marginTop: 4 }} />
+                <span style={S.cardBadgeText}>{card.name}</span>
+              </span>
             </div>
           )}
           {benefit.notes && <div style={S.rowNotes}>{benefit.notes}</div>}
@@ -1565,33 +1562,37 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
               <Check size={11} strokeWidth={3} /> Nice! Moving to the bottom of the list…
             </div>
           )}
-          {mode !== "offer" && (
-            <div style={S.progressTrack}>
-              <div
-                style={{
-                  ...S.progressFill,
-                  width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, ((completing ? cap : amountUsed) / cap) * 100) : 0) : info.fracElapsed * 100}%`,
-                  background: visuallyDone ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
-                  transition: "width 0.4s ease, background 0.4s ease",
-                }}
-              />
+          <div style={S.rowBottomLine}>
+            {mode !== "offer" ? (
+              <div style={S.progressTrack}>
+                <div
+                  style={{
+                    ...S.progressFill,
+                    width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, ((completing ? cap : amountUsed) / cap) * 100) : 0) : info.fracElapsed * 100}%`,
+                    background: visuallyDone ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
+                    transition: "width 0.4s ease, background 0.4s ease",
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ flex: 1 }} />
+            )}
+            <div style={S.rowStats}>
+              <div style={S.rowValueInline}>
+                {mode === "cumulative"
+                  ? `${fmtMoneyPlain(amountUsed)} / ${fmtMoney(cap)}`
+                  : mode === "counter"
+                  ? benefit.targetCount
+                    ? `${count} / ${benefit.targetCount}`
+                    : `${count}×`
+                  : mode === "offer"
+                  ? fmtMoneyPlain(offerTotal)
+                  : fmtMoney(cap)}
+              </div>
+              <div style={{ ...S.rowDays, color: urgent ? S.colors.roseText : S.colors.muted }}>
+                {mode === "counter" || mode === "offer" || visuallyDone || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
+              </div>
             </div>
-          )}
-        </div>
-        <div style={S.rowRight}>
-          <div style={S.rowValue}>
-            {mode === "cumulative"
-              ? `${fmtMoneyPlain(amountUsed)} / ${fmtMoney(cap)}`
-              : mode === "counter"
-              ? benefit.targetCount
-                ? `${count} / ${benefit.targetCount}`
-                : `${count}×`
-              : mode === "offer"
-              ? fmtMoneyPlain(offerTotal)
-              : fmtMoney(cap)}
-          </div>
-          <div style={{ ...S.rowDays, color: urgent ? S.colors.roseText : S.colors.muted }}>
-            {mode === "counter" || mode === "offer" || visuallyDone || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
           </div>
         </div>
         <ChevronDown size={14} style={S.rowChevron} />
@@ -2294,22 +2295,22 @@ const S = {
   logPartialBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   offerAddBtn: { display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   rowMain: { flex: 1, minWidth: 0 },
-  rowTop: { display: "flex", alignItems: "center", gap: 10 },
-  rowName: { fontSize: 14.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" },
+  rowTopLine: { display: "flex", alignItems: "flex-start" },
+  rowName: { fontSize: 14.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", overflowWrap: "break-word" },
   rowMeta: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, minWidth: 0 },
   vendorTag: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, background: colors.surface2, borderRadius: 4, padding: "1px 6px" },
   categoryTag: { fontSize: 11, color: colors.slateBlue, fontFamily: fonts.mono, background: "rgba(76,126,168,0.14)", borderRadius: 4, padding: "1px 6px" },
-  offerTag: { fontSize: 11, color: colors.amber, fontFamily: fonts.mono, background: "rgba(201,138,70,0.14)", borderRadius: 4, padding: "1px 6px", flexShrink: 0 },
   cardBadge: { display: "flex", alignItems: "flex-start", gap: 6, fontSize: 13, color: colors.muted, fontFamily: fonts.mono, minWidth: 0 },
-  cardBadgeText: { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minWidth: 0, flex: 1, lineHeight: 1.3, overflowWrap: "break-word" },
+  cardBadgeText: { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, flex: 1, lineHeight: 1.3, overflowWrap: "break-word" },
   dragHandle: { display: "flex", alignItems: "center", color: colors.muted, cursor: "grab", flexShrink: 0 },
   rowNotes: { fontSize: 12, color: colors.muted, marginTop: 3, maxWidth: 480 },
-  progressTrack: { height: 3, background: colors.border, borderRadius: 2, marginTop: 8, overflow: "hidden", maxWidth: 200 },
+  progressTrack: { height: 3, background: colors.border, borderRadius: 2, overflow: "hidden", flex: 1 },
   progressFill: { height: "100%", borderRadius: 2 },
   rowOpenArea: { display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: "pointer" },
-  rowRight: { textAlign: "right", flexShrink: 0, width: 100 },
-  rowValue: { fontFamily: fonts.mono, fontSize: 13.5 },
-  rowDays: { fontSize: 11, fontFamily: fonts.mono, marginTop: 3 },
+  rowBottomLine: { display: "flex", alignItems: "center", gap: 10, marginTop: 8 },
+  rowStats: { flexShrink: 0, textAlign: "right" },
+  rowValueInline: { fontFamily: fonts.mono, fontSize: 13.5, whiteSpace: "nowrap" },
+  rowDays: { fontSize: 11, fontFamily: fonts.mono, whiteSpace: "nowrap", marginTop: 2 },
   rowChevron: { color: colors.muted, flexShrink: 0, transform: "rotate(-90deg)" },
   detailStatRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, gap: 16 },
   detailStatLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 4 },
