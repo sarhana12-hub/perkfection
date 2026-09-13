@@ -1346,6 +1346,30 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
   const [draft, setDraft] = useState("");
   const [dragging, setDragging] = useState(false);
 
+  // Marking something done is a small win, so celebrate it instead of
+  // snapping instantly to "done, sorted to the bottom" — that jump felt
+  // jarring. `completing` drives an optimistic "done" look (checkbox,
+  // strikethrough, progress bar) the instant you tap, well before the real
+  // state change (and the resulting re-sort) actually lands a couple
+  // seconds later, so the row visibly settles before it moves. Unchecking
+  // stays instant — corrections shouldn't be delayed.
+  const [completing, setCompleting] = useState(false);
+  const [showCompleteMsg, setShowCompleteMsg] = useState(false);
+  const timersRef = useRef([]);
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
+  const celebrate = (applyFn) => {
+    setCompleting(true);
+    setShowCompleteMsg(false);
+    const t1 = setTimeout(() => setShowCompleteMsg(true), 900);
+    const t2 = setTimeout(() => {
+      applyFn();
+      setCompleting(false);
+      setShowCompleteMsg(false);
+    }, 2300);
+    timersRef.current.push(t1, t2);
+  };
+  const visuallyDone = done || completing;
+
   // Pointer Events (not HTML5 drag-and-drop, which iOS Safari has never
   // supported for touch) so drag-to-reorder works on the phone this app
   // actually runs on. Initiated from the grip handle only, so a tap
@@ -1380,7 +1404,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
 
   return (
     <div
-      className="lg-row"
+      className={`lg-row${completing ? " lg-row-completing" : ""}`}
       data-benefit-row={benefit.id}
       style={{ ...S.row, opacity: dragging ? 0.4 : 1 }}
     >
@@ -1399,11 +1423,17 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
         <button
           type="button"
           className="lg-check"
-          style={{ ...S.checkbox, background: done ? S.colors.sage : "transparent", borderColor: done ? S.colors.sage : S.colors.border }}
-          onClick={() => onToggleSingle(benefit.id, info.key)}
+          style={{ ...S.checkbox, position: "relative", background: visuallyDone ? S.colors.sage : "transparent", borderColor: visuallyDone ? S.colors.sage : S.colors.border }}
+          onClick={() => (done ? onToggleSingle(benefit.id, info.key) : celebrate(() => onToggleSingle(benefit.id, info.key)))}
           aria-label={done ? "Mark unused" : "Mark used"}
+          title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
         >
-          {done && <Check size={13} color="#0F1216" strokeWidth={3} />}
+          {completing && <span className="lg-check-ring" aria-hidden="true" />}
+          {visuallyDone ? (
+            <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />
+          ) : (
+            <Check size={13} color={S.colors.muted} strokeWidth={3} style={{ opacity: 0.3 }} />
+          )}
         </button>
       )}
 
@@ -1429,13 +1459,14 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
               borderRadius: 8,
               overflow: "hidden",
               position: "relative",
-              background: done ? S.colors.sage : "transparent",
-              borderColor: done ? S.colors.sage : S.colors.border,
+              background: visuallyDone ? S.colors.sage : "transparent",
+              borderColor: visuallyDone ? S.colors.sage : S.colors.border,
             }}
-            onClick={() => onSetAmount(benefit.id, info.key, done ? 0 : cap)}
+            onClick={() => (done ? onSetAmount(benefit.id, info.key, 0) : celebrate(() => onSetAmount(benefit.id, info.key, cap)))}
             aria-label={done ? "Mark unused" : "Mark fully used"}
+            title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
           >
-            {!done && (
+            {!visuallyDone && (
               <span
                 style={{
                   position: "absolute", left: 0, bottom: 0, width: "100%",
@@ -1444,8 +1475,9 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
                 }}
               />
             )}
+            {completing && <span className="lg-check-ring" aria-hidden="true" />}
             <span style={{ position: "relative", display: "flex" }}>
-              {done && <Check size={13} color="#0F1216" strokeWidth={3} />}
+              {visuallyDone && <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />}
             </span>
           </button>
           <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount">
@@ -1481,7 +1513,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
 
       <div style={S.rowMain}>
         <div style={S.rowTop}>
-          <span style={{ ...S.rowName, textDecoration: done ? "line-through" : "none", color: done ? S.colors.muted : S.colors.text }}>
+          <span style={{ ...S.rowName, textDecoration: visuallyDone ? "line-through" : "none", color: visuallyDone ? S.colors.muted : S.colors.text }}>
             {benefit.name}
           </span>
           {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
@@ -1497,13 +1529,19 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
           )}
         </div>
         {benefit.notes && <div style={S.rowNotes}>{benefit.notes}</div>}
+        {showCompleteMsg && (
+          <div className="lg-complete-msg" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: S.colors.sage, marginTop: 4 }}>
+            <Check size={11} strokeWidth={3} /> Nice! Moving to the bottom of the list…
+          </div>
+        )}
         {mode !== "offer" && (
           <div style={S.progressTrack}>
             <div
               style={{
                 ...S.progressFill,
-                width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, (amountUsed / cap) * 100) : 0) : info.fracElapsed * 100}%`,
-                background: done ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
+                width: `${mode === "cumulative" ? (cap > 0 ? Math.min(100, ((completing ? cap : amountUsed) / cap) * 100) : 0) : info.fracElapsed * 100}%`,
+                background: visuallyDone ? S.colors.sage : mode === "cumulative" ? S.colors.amber : urgent ? S.colors.rose : S.colors.border2,
+                transition: "width 0.4s ease, background 0.4s ease",
               }}
             />
           </div>
@@ -1522,7 +1560,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
             : fmtMoney(cap)}
         </div>
         <div style={{ ...S.rowDays, color: urgent ? S.colors.roseText : S.colors.muted }}>
-          {mode === "counter" || mode === "offer" || done || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
+          {mode === "counter" || mode === "offer" || visuallyDone || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
         </div>
       </div>
       <div className="lg-rowactions" style={S.rowActions}>
@@ -2084,6 +2122,13 @@ const S = {
 };
 
 const CSS_TEXT = `
+  @keyframes lg-pop { 0% { transform: scale(1); } 35% { transform: scale(1.35); } 65% { transform: scale(0.92); } 100% { transform: scale(1); } }
+  .lg-check-celebrate { animation: lg-pop 0.4s ease; }
+  @keyframes lg-ring-pulse { 0% { transform: scale(0.7); opacity: 0.7; } 100% { transform: scale(2.4); opacity: 0; } }
+  .lg-check-ring { position: absolute; inset: 0; border-radius: inherit; border: 2px solid ${colors.sage}; animation: lg-ring-pulse 0.6s ease-out forwards; pointer-events: none; }
+  .lg-row-completing { transition: background 0.45s ease 0.3s; background: rgba(110,156,130,0.08); }
+  @keyframes lg-fadein-up { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+  .lg-complete-msg { animation: lg-fadein-up 0.25s ease; }
   .lg-row:hover { background: rgba(255,255,255,0.02); }
   .lg-row:hover .lg-rowactions, .lg-row:active .lg-rowactions { opacity: 1 !important; }
   .lg-cardtile { transition: opacity 0.15s ease, transform 0.15s ease; }
