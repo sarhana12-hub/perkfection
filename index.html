@@ -102,6 +102,14 @@ const PERIODICITY = [
   { id: "annual", label: "Annual", short: "yr" },
 ];
 
+const CATEGORIES = [
+  { id: "travel", label: "Travel" },
+  { id: "dining", label: "Dining" },
+  { id: "entertainment", label: "Entertainment" },
+  { id: "cashback", label: "Cash back" },
+  { id: "other", label: "Other" },
+];
+
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const TRACKING_MODES = [
@@ -119,15 +127,15 @@ const TEMPLATES = [
     issuer: "American Express",
     annualFee: 895,
     benefits: [
-      { name: "Uber Cash", vendor: "Uber", value: 15, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Digital entertainment credit", vendor: "Disney+, Hulu, NYT, Peacock, YouTube & more", value: 25, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Resy credit", vendor: "Resy restaurants", value: 100, periodicity: "quarterly", trackingMode: "cumulative", notes: "" },
-      { name: "lululemon credit", vendor: "lululemon", value: 75, periodicity: "quarterly", trackingMode: "cumulative", notes: "" },
-      { name: "Hotel credit", vendor: "Fine Hotels + Resorts / The Hotel Collection", value: 300, periodicity: "semiannual", trackingMode: "cumulative", notes: "" },
-      { name: "Airline fee credit", vendor: "One selected airline", value: 200, periodicity: "annual", trackingMode: "cumulative", notes: "" },
-      { name: "CLEAR Plus credit", vendor: "CLEAR", value: 219, periodicity: "annual", trackingMode: "single", notes: "" },
-      { name: "Uber One credit", vendor: "Uber One", value: 120, periodicity: "annual", trackingMode: "single", notes: "" },
-      { name: "Walmart+ credit", vendor: "Walmart+", value: 12.95, periodicity: "monthly", trackingMode: "single", notes: "" },
+      { name: "Uber Cash", vendor: "Uber", value: 15, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Digital entertainment credit", vendor: "Disney+, Hulu, NYT, Peacock, YouTube & more", value: 25, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "entertainment" },
+      { name: "Resy credit", vendor: "Resy restaurants", value: 100, periodicity: "quarterly", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "lululemon credit", vendor: "lululemon", value: 75, periodicity: "quarterly", trackingMode: "cumulative", notes: "", category: "other" },
+      { name: "Hotel credit", vendor: "Fine Hotels + Resorts / The Hotel Collection", value: 300, periodicity: "semiannual", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Airline fee credit", vendor: "One selected airline", value: 200, periodicity: "annual", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "CLEAR Plus credit", vendor: "CLEAR", value: 219, periodicity: "annual", trackingMode: "single", notes: "", category: "travel" },
+      { name: "Uber One credit", vendor: "Uber One", value: 120, periodicity: "annual", trackingMode: "single", notes: "", category: "travel" },
+      { name: "Walmart+ credit", vendor: "Walmart+", value: 12.95, periodicity: "monthly", trackingMode: "single", notes: "", category: "other" },
     ],
   },
   {
@@ -135,11 +143,11 @@ const TEMPLATES = [
     issuer: "American Express",
     annualFee: 325,
     benefits: [
-      { name: "Uber Cash", vendor: "Uber", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Dining credit", vendor: "Grubhub, Five Guys, Cheesecake Factory, Wonder, Buffalo Wild Wings", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Dunkin' credit", vendor: "Dunkin'", value: 7, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Resy credit", vendor: "Resy restaurants", value: 50, periodicity: "semiannual", trackingMode: "cumulative", notes: "" },
-      { name: "Hotel Collection credit", vendor: "The Hotel Collection via Amex Travel", value: 100, periodicity: "annual", trackingMode: "cumulative", notes: "" },
+      { name: "Uber Cash", vendor: "Uber", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Dining credit", vendor: "Grubhub, Five Guys, Cheesecake Factory, Wonder, Buffalo Wild Wings", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "Dunkin' credit", vendor: "Dunkin'", value: 7, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "Resy credit", vendor: "Resy restaurants", value: 50, periodicity: "semiannual", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "Hotel Collection credit", vendor: "The Hotel Collection via Amex Travel", value: 100, periodicity: "annual", trackingMode: "cumulative", notes: "", category: "travel" },
     ],
   },
   {
@@ -147,10 +155,10 @@ const TEMPLATES = [
     issuer: "American Express",
     annualFee: 650,
     benefits: [
-      { name: "Resy credit", vendor: "Resy restaurants", value: 20, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Delta Stays credit", vendor: "Delta Stays (delta.com/stays)", value: 200, periodicity: "annual", trackingMode: "cumulative", notes: "" },
-      { name: "Rideshare credit", vendor: "Uber, Lyft & other rideshare", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Companion Certificate", vendor: "Delta", value: 0, periodicity: "annual", trackingMode: "single", notes: "" },
+      { name: "Resy credit", vendor: "Resy restaurants", value: 20, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "Delta Stays credit", vendor: "Delta Stays (delta.com/stays)", value: 200, periodicity: "annual", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Rideshare credit", vendor: "Uber, Lyft & other rideshare", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Companion Certificate", vendor: "Delta", value: 0, periodicity: "annual", trackingMode: "single", notes: "", category: "travel" },
     ],
   },
   {
@@ -158,14 +166,14 @@ const TEMPLATES = [
     issuer: "Chase",
     annualFee: 795,
     benefits: [
-      { name: "Annual travel credit", vendor: "Any travel purchase", value: 300, periodicity: "annual", trackingMode: "cumulative", notes: "" },
-      { name: "The Edit hotel credit", vendor: "The Edit by Chase Travel", value: 500, periodicity: "annual", trackingMode: "cumulative", notes: "" },
-      { name: "Dining credit", vendor: "Sapphire Reserve Exclusive Tables", value: 150, periodicity: "semiannual", trackingMode: "cumulative", notes: "" },
-      { name: "StubHub / viagogo credit", vendor: "StubHub, viagogo", value: 300, periodicity: "annual", trackingMode: "cumulative", notes: "" },
-      { name: "DoorDash credit", vendor: "DoorDash", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Lyft credit", vendor: "Lyft", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Peloton credit", vendor: "Peloton", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "" },
-      { name: "Apple TV+ & Music", vendor: "Apple", value: 250, periodicity: "annual", trackingMode: "single", notes: "" },
+      { name: "Annual travel credit", vendor: "Any travel purchase", value: 300, periodicity: "annual", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "The Edit hotel credit", vendor: "The Edit by Chase Travel", value: 500, periodicity: "annual", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Dining credit", vendor: "Sapphire Reserve Exclusive Tables", value: 150, periodicity: "semiannual", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "StubHub / viagogo credit", vendor: "StubHub, viagogo", value: 300, periodicity: "annual", trackingMode: "cumulative", notes: "", category: "entertainment" },
+      { name: "DoorDash credit", vendor: "DoorDash", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "dining" },
+      { name: "Lyft credit", vendor: "Lyft", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "travel" },
+      { name: "Peloton credit", vendor: "Peloton", value: 10, periodicity: "monthly", trackingMode: "cumulative", notes: "", category: "other" },
+      { name: "Apple TV+ & Music", vendor: "Apple", value: 250, periodicity: "annual", trackingMode: "single", notes: "", category: "entertainment" },
     ],
   },
 ];
@@ -311,6 +319,8 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const [error, setError] = useState(null);
   const [selectedCardIds, setSelectedCardIds] = useState(new Set()); // empty = all cards
   const isAllSelected = selectedCardIds.size === 0;
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState(new Set()); // empty = all categories
+  const isAllCategoriesSelected = selectedCategoryIds.size === 0;
   const [cardModal, setCardModal] = useState(null); // null | 'new' | card
   const [benefitModal, setBenefitModal] = useState(null); // null | {cardId} | benefit
   const [showTemplates, setShowTemplates] = useState(false);
@@ -526,6 +536,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
   const visibleBenefits = useMemo(() => {
     let list = isAllSelected ? benefits : benefits.filter((b) => selectedCardIds.has(b.cardId));
+    if (!isAllCategoriesSelected) list = list.filter((b) => selectedCategoryIds.has(b.category));
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter((b) => {
@@ -539,7 +550,14 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       });
     }
     return list;
-  }, [benefits, selectedCardIds, isAllSelected, searchQuery, cards]);
+  }, [benefits, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected, searchQuery, cards]);
+
+  const uncategorizedBenefits = useMemo(() => benefits.filter((b) => !b.category), [benefits]);
+
+  const saveCategorization = (choices) => {
+    const nextBenefits = benefits.map((b) => (choices[b.id] ? { ...b, category: choices[b.id] } : b));
+    commit({ benefits: nextBenefits });
+  };
 
   const grouped = useMemo(() => {
     const g = {};
@@ -599,18 +617,29 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const stats = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
-    const scopedBenefits = isAllSelected ? benefits : benefits.filter((b) => selectedCardIds.has(b.cardId));
+    const cardScopedBenefits = isAllSelected ? benefits : benefits.filter((b) => selectedCardIds.has(b.cardId));
+    const scopedBenefits = isAllCategoriesSelected ? cardScopedBenefits : cardScopedBenefits.filter((b) => selectedCategoryIds.has(b.category));
     const benefitsById = Object.fromEntries(scopedBenefits.map((b) => [b.id, b]));
+    const cardScopedBenefitsById = Object.fromEntries(cardScopedBenefits.map((b) => [b.id, b]));
     let capturedThisYear = 0;
     let remainingPotential = 0;
     const remainingByPeriodicity = { monthly: 0, quarterly: 0, semiannual: 0, annual: 0 };
     const capturedByBenefitMap = {};
+    // Category totals ignore the category filter itself (always all 5), scoped only by
+    // card selection, so they're a side-by-side comparison regardless of which chip is active.
+    const capturedByCategory = Object.fromEntries(CATEGORIES.map((c) => [c.id, 0]));
 
     Object.entries(usage).forEach(([k, u]) => {
       const sep = k.indexOf(":");
       const benefitId = k.slice(0, sep);
       const periodKey = k.slice(sep + 1);
       const b = benefitsById[benefitId];
+      const cardScopedB = cardScopedBenefitsById[benefitId];
+      if (cardScopedB && periodKey.slice(0, 4) === String(year)) {
+        const catVal = redeemedValue(cardScopedB, u);
+        const cat = cardScopedB.category;
+        if (capturedByCategory[cat] !== undefined) capturedByCategory[cat] += catVal;
+      }
       if (!b) return;
       if (periodKey.slice(0, 4) === String(year)) {
         const val = redeemedValue(b, u);
@@ -653,8 +682,8 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
     const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
     const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
-    return { capturedThisYear, remainingPotential, remainingByPeriodicity, capturedByBenefit, totalAnnualFees };
-  }, [usage, benefits, cards, selectedCardIds, isAllSelected]);
+    return { capturedThisYear, remainingPotential, remainingByPeriodicity, capturedByBenefit, capturedByCategory, totalAnnualFees };
+  }, [usage, benefits, cards, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   const historyYears = useMemo(() => {
     const current = new Date().getFullYear();
@@ -690,6 +719,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       const b = benefitsById[benefitId];
       if (!b) return;
       if (!isAllSelected && !selectedCardIds.has(b.cardId)) return;
+      if (!isAllCategoriesSelected && !selectedCategoryIds.has(b.category)) return;
       const { label, sortDate } = parsePeriodKey(b.periodicity, periodKey);
       entries.push({
         key: k,
@@ -702,7 +732,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     });
     entries.sort((a, b) => b.sortDate - a.sortDate || a.benefit.name.localeCompare(b.benefit.name));
     return entries;
-  }, [usage, benefits, cards, historyYear, selectedCardIds, isAllSelected]);
+  }, [usage, benefits, cards, historyYear, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   const historyTotal = useMemo(() => historyEntries.reduce((s, e) => s + e.redeemed, 0), [historyEntries]);
 
@@ -806,6 +836,11 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
               : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of fees`
             : `${new Date().getFullYear()}`}
         </div>
+        <div style={S.statBreakdown}>
+          {CATEGORIES.map((c) => (
+            <span key={c.id}>{c.label} {fmtMoneyPlain(stats.capturedByCategory[c.id])}</span>
+          ))}
+        </div>
         {showCapturedDetail && (
           <div style={S.capturedDetailList}>
             {stats.capturedByBenefit.map(({ benefit, total }) => {
@@ -899,6 +934,43 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         </button>
       </div>
 
+      {benefits.length > 0 && (
+        <div style={S.categoryRow}>
+          <button
+            type="button"
+            className="lg-chip"
+            style={{ ...S.chip, ...(isAllCategoriesSelected ? S.chipActive : {}) }}
+            onClick={() => setSelectedCategoryIds(new Set())}
+            title="Show every category"
+          >
+            All categories
+          </button>
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className="lg-chip"
+              style={{ ...S.chip, ...(selectedCategoryIds.has(c.id) ? S.chipActive : {}) }}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey) {
+                  setSelectedCategoryIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(c.id)) next.delete(c.id);
+                    else next.add(c.id);
+                    return next;
+                  });
+                } else {
+                  setSelectedCategoryIds(new Set([c.id]));
+                }
+              }}
+              title="Click to select. Ctrl/Cmd-click to select more than one."
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {cards.length === 0 ? (
         <EmptyState onAdd={() => setCardModal("new")} onTemplates={() => setShowTemplates(true)} />
       ) : view === "history" ? (
@@ -940,6 +1012,9 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                   <div style={S.historyMain}>
                     <span style={S.rowName}>{e.benefit.name}</span>
                     {e.benefit.vendor && <span style={S.vendorTag}>{e.benefit.vendor}</span>}
+                    {e.benefit.category && (
+                      <span style={S.categoryTag}>{CATEGORIES.find((c) => c.id === e.benefit.category)?.label || e.benefit.category}</span>
+                    )}
                     {isAllSelected && e.card && (
                       <span style={S.cardBadge}>
                         <span style={{ width: 9, height: 9, borderRadius: "50%", background: e.card.color, display: "inline-block" }} />
@@ -1150,6 +1225,10 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           onSignOut={onSignOut}
           onClose={() => setShowSettings(false)}
         />
+      )}
+
+      {uncategorizedBenefits.length > 0 && (
+        <CategorizeBackfillModal benefits={uncategorizedBenefits} cards={cards} onSave={saveCategorization} />
       )}
     </div>
   );
@@ -1376,6 +1455,9 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
             {benefit.name}
           </span>
           {benefit.vendor && <span style={S.vendorTag}>{benefit.vendor}</span>}
+          {benefit.category && (
+            <span style={S.categoryTag}>{CATEGORIES.find((c) => c.id === benefit.category)?.label || benefit.category}</span>
+          )}
           {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
           {showCard && card && (
             <span style={S.cardBadge}>
@@ -1447,6 +1529,46 @@ function Modal({ children, onClose, title }) {
         {children}
       </div>
     </div>
+  );
+}
+
+function CategorizeBackfillModal({ benefits, cards, onSave }) {
+  const cardsById = Object.fromEntries(cards.map((c) => [c.id, c]));
+  const [choices, setChoices] = useState({});
+
+  const allChosen = benefits.every((b) => choices[b.id]);
+
+  return (
+    <Modal onClose={() => {}} title="Categorize your benefits">
+      <div style={{ color: S.colors.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+        Every benefit now needs a category so you can filter and total by Travel, Dining, Entertainment, Cash back, or Other. Assign one to each of your existing benefits to continue.
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "45vh", overflowY: "auto", marginBottom: 4 }}>
+        {benefits.map((b) => (
+          <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ ...S.rowName, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
+              <div style={{ fontSize: 11, color: S.colors.muted, fontFamily: S.fonts.mono }}>{cardsById[b.cardId]?.name}</div>
+            </div>
+            <select
+              style={{ ...S.input, width: 160, flexShrink: 0 }}
+              value={choices[b.id] || ""}
+              onChange={(e) => setChoices((prev) => ({ ...prev, [b.id]: e.target.value }))}
+            >
+              <option value="" disabled>Choose…</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+        <button type="button" className="lg-btn-primary" style={S.btnPrimary} disabled={!allChosen} onClick={() => onSave(choices)}>
+          Save categories
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -1587,7 +1709,9 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
   const [resetDay, setResetDay] = useState(benefit?.resetDay ?? "");
   const [notes, setNotes] = useState(benefit?.notes || "");
   const [cardId, setCardId] = useState(benefit?.cardId || defaultCardId || cards[0]?.id);
+  const [category, setCategory] = useState(benefit?.category || "");
   const [nameError, setNameError] = useState(false);
+  const [categoryError, setCategoryError] = useState(false);
 
   if (cards.length === 0) {
     return (
@@ -1603,10 +1727,16 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
   }
 
   const handleSave = () => {
+    let hasError = false;
     if (name.trim().length === 0) {
       setNameError(true);
-      return;
+      hasError = true;
     }
+    if (!category) {
+      setCategoryError(true);
+      hasError = true;
+    }
+    if (hasError) return;
     const effectivePeriodicity = trackingMode === "offer" ? "monthly" : periodicity;
     const useCustomReset = effectivePeriodicity === "annual" && resetMonth && resetDay;
     onSave({
@@ -1614,6 +1744,7 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
       cardId,
       name: name.trim(),
       vendor: vendor.trim(),
+      category,
       value: trackingMode === "offer" ? 0 : Number(value) || 0,
       periodicity: effectivePeriodicity,
       trackingMode,
@@ -1644,6 +1775,19 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
           autoFocus
         />
         {nameError && <div style={S.fieldError}>Give the benefit a name before saving.</div>}
+      </Field>
+      <Field label="Category">
+        <select
+          style={{ ...S.input, borderColor: categoryError ? S.colors.rose : S.colors.border }}
+          value={category}
+          onChange={(e) => { setCategory(e.target.value); if (categoryError) setCategoryError(false); }}
+        >
+          <option value="" disabled>Choose a category…</option>
+          {CATEGORIES.map((c) => (
+            <option key={c.id} value={c.id}>{c.label}</option>
+          ))}
+        </select>
+        {categoryError && <div style={S.fieldError}>Pick a category before saving.</div>}
       </Field>
       <Field label="Vendor (optional)">
         <input style={S.input} value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="e.g. Uber, Resy, DoorDash" />
@@ -1833,6 +1977,7 @@ const S = {
   statBreakdown: { display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10.5, color: colors.muted, marginTop: 4, fontFamily: fonts.mono },
   backupBtn: { width: 32, height: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: colors.muted, cursor: "pointer" },
   walletRow: { display: "flex", gap: 10, overflowX: "auto", overflowY: "visible", paddingTop: 18, paddingBottom: 10, marginBottom: 8, alignItems: "flex-start" },
+  categoryRow: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 },
   chip: { flexShrink: 0, background: colors.surface, border: `1px solid ${colors.border}`, color: colors.muted, borderRadius: 20, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans },
   chipActive: { background: colors.surface2, color: colors.text, borderColor: colors.gold },
   addCardChip: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 10, padding: "0 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, height: 118 },
@@ -1881,6 +2026,7 @@ const S = {
   rowTop: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   rowName: { fontSize: 14.5 },
   vendorTag: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, background: colors.surface2, borderRadius: 4, padding: "1px 6px" },
+  categoryTag: { fontSize: 11, color: colors.slateBlue, fontFamily: fonts.mono, background: "rgba(76,126,168,0.14)", borderRadius: 4, padding: "1px 6px" },
   offerTag: { fontSize: 11, color: colors.amber, fontFamily: fonts.mono, background: "rgba(201,138,70,0.14)", borderRadius: 4, padding: "1px 6px" },
   cardBadge: { display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: colors.muted, fontFamily: fonts.mono },
   dragHandle: { display: "flex", alignItems: "center", color: colors.muted, cursor: "grab", flexShrink: 0 },
