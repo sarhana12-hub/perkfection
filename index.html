@@ -746,8 +746,9 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       </div>
 
       <div style={S.header}>
-        <div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <h1 style={S.h1}>Willis Family Card Benefits Ledger</h1>
+          <span style={{ fontFamily: S.fonts.mono, fontSize: 12, color: S.colors.gold, letterSpacing: "0.04em" }}>PURRKFECTION</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {error && <div style={S.errorBanner}>{error}</div>}
