@@ -1449,7 +1449,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
             </span>
           </button>
           <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount">
-            <Pencil size={11} />
+            <Pencil size={12} /> Log
           </button>
         </div>
       )}
@@ -2049,7 +2049,7 @@ const S = {
   logInput: { width: 56, background: colors.bg, border: `1px solid ${colors.gold}`, borderRadius: 6, padding: "3px 6px", color: colors.text, fontSize: 12, fontFamily: fonts.mono, boxSizing: "border-box" },
   logBtn: { width: 20, height: 20, borderRadius: 5, border: "none", background: colors.sage, color: "#0F1216", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
   logBtnGhost: { width: 20, height: 20, borderRadius: 5, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
-  logPartialBtn: { width: 18, height: 18, borderRadius: 5, border: `1px solid transparent`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  logPartialBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   offerAddBtn: { display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   rowMain: { flex: 1, minWidth: 0 },
   rowTop: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
@@ -2093,7 +2093,7 @@ const CSS_TEXT = `
   .lg-cardactions svg { color: rgba(244,241,234,0.8); }
   .lg-check:hover { border-color: ${colors.gold} !important; }
   .lg-counterbtn:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
-  .lg-logpartial:hover { color: ${colors.gold} !important; }
+  .lg-logpartial:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
   .lg-offeradd:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
   .lg-historyrow:hover { background: rgba(255,255,255,0.03); }
   .lg-backupbtn:hover { color: ${colors.gold} !important; background: rgba(255,255,255,0.04); }
