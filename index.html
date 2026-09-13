@@ -897,9 +897,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         <button type="button" className="lg-chip" style={S.addCardChip} onClick={() => setCardModal("new")}>
           <Plus size={14} /> Add card
         </button>
-        <button type="button" className="lg-chip" style={{ ...S.addCardChip, color: S.colors.gold, borderColor: S.colors.gold }} onClick={() => setShowTemplates(true)}>
-          <Sparkles size={14} /> Templates
-        </button>
       </div>
 
       {cards.length === 0 ? (
@@ -1073,6 +1070,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           nextColor={PALETTE[cards.length % PALETTE.length]}
           onSave={saveCard}
           onClose={() => setCardModal(null)}
+          onUseTemplate={cardModal === "new" ? () => { setCardModal(null); setShowTemplates(true); } : undefined}
         />
       )}
 
@@ -1514,7 +1512,7 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
   );
 }
 
-function CardModal({ card, nextColor, onSave, onClose }) {
+function CardModal({ card, nextColor, onSave, onClose, onUseTemplate }) {
   const [name, setName] = useState(card?.name || "");
   const [issuer, setIssuer] = useState(card?.issuer || "");
   const [annualFee, setAnnualFee] = useState(card?.annualFee ?? "");
@@ -1531,6 +1529,15 @@ function CardModal({ card, nextColor, onSave, onClose }) {
 
   return (
     <Modal onClose={onClose} title={card ? "Edit card" : "Add card"}>
+      {onUseTemplate && (
+        <button
+          type="button"
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: S.colors.gold, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 18 }}
+          onClick={onUseTemplate}
+        >
+          <Sparkles size={13} /> Or start from a template instead
+        </button>
+      )}
       <Field label="Card name">
         <input
           style={{ ...S.input, borderColor: nameError ? S.colors.rose : S.colors.border }}
