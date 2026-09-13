@@ -79,14 +79,14 @@ const PALETTE = [
   "#5C2E4E", // mulberry
   "#40372A", // bark
   "#264D3B", // spruce
-  "#6E7580", // silver
-  "#8C6A2E", // antique gold
+  "#585E66", // silver
+  "#705525", // antique gold
 ];
 
 // Colors assigned to the four starter cards on first launch, matched to each card's name.
 const DEFAULT_CARD_COLORS = {
-  "Amex Platinum": "#6E7580", // silver
-  "Amex Gold": "#8C6A2E", // antique gold
+  "Amex Platinum": "#585E66", // silver
+  "Amex Gold": "#705525", // antique gold
   "Delta SkyMiles Reserve": "#6B2737", // wine/red, Delta's brand color
   "Chase Sapphire Reserve": "#23395B", // navy, "Sapphire"
 };
@@ -1409,7 +1409,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
             ? fmtMoneyPlain(offerTotal)
             : fmtMoney(cap)}
         </div>
-        <div style={{ ...S.rowDays, color: urgent ? S.colors.rose : S.colors.muted }}>
+        <div style={{ ...S.rowDays, color: urgent ? S.colors.roseText : S.colors.muted }}>
           {mode === "counter" || mode === "offer" || done || isHistorical ? info.label : info.daysLeft === 0 ? "last day" : `${info.daysLeft}d left`}
         </div>
       </div>
@@ -1705,6 +1705,7 @@ const colors = {
   sage: "#6E9C82",
   amber: "#C98A46",
   rose: "#A85068",
+  roseText: "#C97088",
   deepBlue: "#23395B",
   wine: "#6B2737",
   slateBlue: "#4C7EA8",
@@ -1732,7 +1733,7 @@ const S = {
   iconTile: { width: 56, height: 56, borderRadius: 12, background: colors.surface, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   eyebrow: { fontSize: 12, color: colors.gold, fontFamily: fonts.mono, letterSpacing: "0.02em", marginBottom: 6 },
   h1: { fontFamily: fonts.serif, fontWeight: 500, fontSize: 32, margin: 0, letterSpacing: "-0.01em" },
-  errorBanner: { fontSize: 12, color: colors.rose, fontFamily: fonts.mono, padding: "6px 10px", border: `1px solid ${colors.rose}`, borderRadius: 6 },
+  errorBanner: { fontSize: 12, color: colors.roseText, fontFamily: fonts.mono, padding: "6px 10px", border: `1px solid ${colors.rose}`, borderRadius: 6 },
   historicalBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", fontSize: 13, color: colors.text, background: "rgba(184,146,90,0.12)", border: `1px solid ${colors.gold}`, borderRadius: 8, padding: "10px 14px", margin: "12px 0" },
   statRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1, background: colors.border, marginBottom: 28, borderRadius: 8, overflow: "hidden" },
   heroBox: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "22px 24px", marginBottom: 20 },
@@ -1818,10 +1819,10 @@ const S = {
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   modalTitle: { fontFamily: fonts.serif, fontSize: 19, color: colors.text },
   input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 11px", color: colors.text, fontSize: 14, fontFamily: fonts.sans, boxSizing: "border-box" },
-  fieldError: { fontSize: 12, color: colors.rose, marginTop: 6, fontFamily: fonts.sans },
+  fieldError: { fontSize: 12, color: colors.roseText, marginTop: 6, fontFamily: fonts.sans },
   btnPrimary: { background: colors.gold, color: "#181410", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
   btnGhost: { background: "transparent", color: colors.muted, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans },
-  btnDanger: { background: colors.rose, color: "#1a0d10", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
+  btnDanger: { background: colors.rose, color: "#FFFFFF", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
   templateRow: { display: "flex", justifyContent: "space-between", alignItems: "center", background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", textAlign: "left", width: "100%" },
   codeMenu: { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 260, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 14, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
   codeMenuLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 6 },
@@ -1864,7 +1865,7 @@ const AUTH_S = {
   divider: { height: 1, background: colors.border, margin: "22px 0" },
   choiceRow: { display: "flex", flexDirection: "column", gap: 10 },
   input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "10px 12px", color: colors.text, fontSize: 15, fontFamily: fonts.mono, textAlign: "center", letterSpacing: "0.04em", boxSizing: "border-box", textTransform: "uppercase" },
-  error: { fontSize: 12.5, color: colors.rose, marginTop: 10 },
+  error: { fontSize: 12.5, color: colors.roseText, marginTop: 10 },
   signedInAs: { fontSize: 12, color: colors.muted, marginBottom: 18, fontFamily: fonts.mono },
 };
 
