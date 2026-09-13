@@ -1917,12 +1917,21 @@ function AuthGate() {
     });
   }, []);
 
+  // Popups are unreliable in mobile Safari and standalone (home-screen) PWA
+  // mode — there's no reliable way for the page to regain control after one.
+  // Redirect leaves the page and comes back here; onAuthStateChanged above
+  // picks up the signed-in user once Firebase processes the return trip.
+  // getRedirectResult only exists here to surface an error if that failed.
+  useEffect(() => {
+    auth.getRedirectResult().catch((e) => {
+      if (e?.code && e.code !== "auth/no-auth-event") setError("Couldn't sign in — try again.");
+    });
+  }, []);
+
   const signIn = () => {
-    setBusy(true);
     setError(null);
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-      .catch((e) => setError(e.code === "auth/popup-closed-by-user" ? null : "Couldn't sign in — try again."))
-      .finally(() => setBusy(false));
+    auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+    // no .then/.catch/.finally — the page navigates away immediately
   };
 
   const signOut = () => {
@@ -1983,7 +1992,7 @@ function AuthGate() {
         <div style={AUTH_S.card}>
           <div style={AUTH_S.title}>Purrkfection</div>
           <div style={AUTH_S.sub}>Sign in with Google to open a shared benefits ledger.</div>
-          <button type="button" style={AUTH_S.googleBtn} onClick={signIn} disabled={busy}>
+          <button type="button" style={AUTH_S.googleBtn} onClick={signIn}>
             Sign in with Google
           </button>
           {error && <div style={AUTH_S.error}>{error}</div>}
