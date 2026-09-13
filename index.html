@@ -1545,14 +1545,18 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
             <span style={{ ...S.rowName, textDecoration: visuallyDone ? "line-through" : "none", color: visuallyDone ? S.colors.muted : S.colors.text }}>
               {benefit.name}
             </span>
-            {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
-            {showCard && card && (
-              <span style={S.cardBadge}>
-                <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block" }} />
-                {card.name}
-              </span>
-            )}
           </div>
+          {(mode === "offer" || (showCard && card)) && (
+            <div style={S.rowMeta}>
+              {mode === "offer" && <span style={S.offerTag}>Cash back</span>}
+              {showCard && card && (
+                <span style={S.cardBadge}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block", flexShrink: 0, marginTop: 4 }} />
+                  <span style={S.cardBadgeText}>{card.name}</span>
+                </span>
+              )}
+            </div>
+          )}
           {benefit.notes && <div style={S.rowNotes}>{benefit.notes}</div>}
           {showCompleteMsg && (
             <div className="lg-complete-msg" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: S.colors.sage, marginTop: 4 }}>
@@ -2287,12 +2291,14 @@ const S = {
   logPartialBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   offerAddBtn: { display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   rowMain: { flex: 1, minWidth: 0 },
-  rowTop: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  rowName: { fontSize: 14.5 },
+  rowTop: { display: "flex", alignItems: "center", gap: 10 },
+  rowName: { fontSize: 14.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "break-word" },
+  rowMeta: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, minWidth: 0 },
   vendorTag: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, background: colors.surface2, borderRadius: 4, padding: "1px 6px" },
   categoryTag: { fontSize: 11, color: colors.slateBlue, fontFamily: fonts.mono, background: "rgba(76,126,168,0.14)", borderRadius: 4, padding: "1px 6px" },
-  offerTag: { fontSize: 11, color: colors.amber, fontFamily: fonts.mono, background: "rgba(201,138,70,0.14)", borderRadius: 4, padding: "1px 6px" },
-  cardBadge: { display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: colors.muted, fontFamily: fonts.mono },
+  offerTag: { fontSize: 11, color: colors.amber, fontFamily: fonts.mono, background: "rgba(201,138,70,0.14)", borderRadius: 4, padding: "1px 6px", flexShrink: 0 },
+  cardBadge: { display: "flex", alignItems: "flex-start", gap: 6, fontSize: 13, color: colors.muted, fontFamily: fonts.mono, minWidth: 0 },
+  cardBadgeText: { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minWidth: 0, flex: 1, lineHeight: 1.3, overflowWrap: "break-word" },
   dragHandle: { display: "flex", alignItems: "center", color: colors.muted, cursor: "grab", flexShrink: 0 },
   rowNotes: { fontSize: 12, color: colors.muted, marginTop: 3, maxWidth: 480 },
   progressTrack: { height: 3, background: colors.border, borderRadius: 2, marginTop: 8, overflow: "hidden", maxWidth: 200 },
