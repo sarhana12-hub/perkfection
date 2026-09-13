@@ -1810,7 +1810,7 @@ const S = {
   rowRight: { textAlign: "right", flexShrink: 0, width: 100 },
   rowValue: { fontFamily: fonts.mono, fontSize: 13.5 },
   rowDays: { fontSize: 11, fontFamily: fonts.mono, marginTop: 3 },
-  rowActions: { display: "flex", gap: 8, flexShrink: 0, opacity: 0 },
+  rowActions: { display: "flex", gap: 8, flexShrink: 0, opacity: 0.55 },
   addBenefitBtn: { alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, marginTop: 6 },
   iconBtn: { color: colors.muted, cursor: "pointer" },
   empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "50px 20px" },
@@ -1832,11 +1832,11 @@ const S = {
 
 const CSS_TEXT = `
   .lg-row:hover { background: rgba(255,255,255,0.02); }
-  .lg-row:hover .lg-rowactions { opacity: 1 !important; }
+  .lg-row:hover .lg-rowactions, .lg-row:active .lg-rowactions { opacity: 1 !important; }
   .lg-cardtile { transition: opacity 0.15s ease, transform 0.15s ease; }
   .lg-cardtile:hover { transform: translateY(-2px); opacity: 1 !important; }
-  .lg-cardactions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s ease; }
-  .lg-cardtile:hover .lg-cardactions { opacity: 1; }
+  .lg-cardactions { display: flex; gap: 6px; opacity: 0.55; transition: opacity 0.15s ease; }
+  .lg-cardtile:hover .lg-cardactions, .lg-cardtile:active .lg-cardactions { opacity: 1; }
   .lg-cardactions svg { color: rgba(244,241,234,0.8); }
   .lg-check:hover { border-color: ${colors.gold} !important; }
   .lg-counterbtn:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
