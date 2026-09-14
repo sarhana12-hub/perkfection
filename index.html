@@ -1673,6 +1673,8 @@ function CategorizeBackfillModal({ benefits, cards, onSave }) {
 function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExport, onImportClick, onSwitchLedger, onSignOut, onClose }) {
   const [nameDraft, setNameDraft] = useState(ledgerName);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [urlCopyFeedback, setUrlCopyFeedback] = useState(false);
+  const siteUrl = window.location.origin + window.location.pathname;
 
   const saveName = () => {
     const trimmed = nameDraft.trim();
@@ -1683,6 +1685,13 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
     navigator.clipboard?.writeText(ledgerCode).then(() => {
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
+    });
+  };
+
+  const copyUrl = () => {
+    navigator.clipboard?.writeText(siteUrl).then(() => {
+      setUrlCopyFeedback(true);
+      setTimeout(() => setUrlCopyFeedback(false), 1500);
     });
   };
 
@@ -1708,6 +1717,13 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
           {ledgerCode} {copyFeedback ? "✓ copied" : ""}
         </div>
         <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll enter it and pick a name to join.</div>
+      </Field>
+
+      <Field label="Site link">
+        <div style={{ ...S.codeMenuCode, fontSize: 13, wordBreak: "break-all" }} onClick={copyUrl} title="Click to copy">
+          {siteUrl} {urlCopyFeedback ? "✓ copied" : ""}
+        </div>
+        <div style={S.codeMenuHint}>Send this link along with the ledger code above so they can open the app and join.</div>
       </Field>
 
       <Field label="Backup">
