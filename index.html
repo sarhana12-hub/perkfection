@@ -632,11 +632,13 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const stats = useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
+    const monthKey = `${year}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const cardScopedBenefits = isAllSelected ? benefits : benefits.filter((b) => selectedCardIds.has(b.cardId));
     const scopedBenefits = isAllCategoriesSelected ? cardScopedBenefits : cardScopedBenefits.filter((b) => selectedCategoryIds.has(b.category));
     const benefitsById = Object.fromEntries(scopedBenefits.map((b) => [b.id, b]));
     const cardScopedBenefitsById = Object.fromEntries(cardScopedBenefits.map((b) => [b.id, b]));
     let capturedThisYear = 0;
+    let capturedThisMonth = 0;
     let remainingPotential = 0;
     const capturedByBenefitMap = {};
     // Category totals ignore the category filter itself (always all 5), scoped only by
@@ -659,6 +661,20 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         const val = redeemedValue(b, u);
         capturedThisYear += val;
         capturedByBenefitMap[benefitId] = (capturedByBenefitMap[benefitId] || 0) + val;
+      }
+      // Only monthly-cadence credits have a period key that maps onto a single calendar
+      // month, so "this month" is scoped to those — a quarterly/annual credit's running
+      // total isn't attributable to any particular month within its period.
+      if (b && b.periodicity === "monthly" && periodKey === monthKey) {
+        capturedThisMonth += redeemedValue(b, u);
+      }
+    });
+
+    let monthlyPotential = 0;
+    scopedBenefits.forEach((b) => {
+      const mode = b.trackingMode || "single";
+      if (b.periodicity === "monthly" && (mode === "single" || mode === "cumulative")) {
+        monthlyPotential += Number(b.value) || 0;
       }
     });
 
@@ -695,8 +711,21 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
     const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
     const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
-    return { capturedThisYear, remainingPotential, capturedByBenefit, capturedByCategory, totalAnnualFees };
+    return { capturedThisYear, capturedThisMonth, monthlyPotential, remainingPotential, capturedByBenefit, capturedByCategory, totalAnnualFees };
   }, [usage, benefits, cards, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
+
+  // Two playful progress mascots: one for the whole year against the cards' combined
+  // annual fees (ties into the existing "compare to annual fees" framing), one for the
+  // current month against what's actually capturable this month from monthly-cadence
+  // credits. Both re-derive from `stats`, which is already scoped to the selected
+  // card(s), so the mascots automatically reflect whichever card is currently active.
+  const ytdPct = stats.totalAnnualFees > 0 ? stats.capturedThisYear / stats.totalAnnualFees : stats.capturedThisYear > 0 ? 1.5 : 0;
+  const mtdPct = stats.monthlyPotential > 0 ? stats.capturedThisMonth / stats.monthlyPotential : stats.capturedThisMonth > 0 ? 1.5 : 0;
+  const moodTier = (pct) => (pct >= 1 ? 3 : pct >= 0.66 ? 2 : pct >= 0.33 ? 1 : 0);
+  const ytdTier = moodTier(ytdPct);
+  const mtdTier = moodTier(mtdPct);
+  const YTD_CAPTIONS = ["Long year ahead", "Chipping away at the fee", "Almost broken even", stats.totalAnnualFees > 0 ? "Paid for itself — purrfection achieved" : "Pure profit, no fee to beat"];
+  const MTD_CAPTIONS = ["Just getting started this month", "Making moves", "On a roll this month", "Cleaned out this month's credits!"];
 
   const historyYears = useMemo(() => {
     const current = new Date().getFullYear();
@@ -912,6 +941,25 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
             })}
           </div>
         )}
+      </div>
+
+      <div style={S.mascotRow}>
+        <ProgressCat
+          icon={<MtdCatIcon tier={mtdTier} />}
+          title={`This month${cardScopeSuffix}`}
+          valueLabel={stats.monthlyPotential > 0 ? `${fmtMoneyPlain(stats.capturedThisMonth)} / ${fmtMoneyPlain(stats.monthlyPotential)}` : fmtMoney(stats.capturedThisMonth)}
+          pct={mtdPct}
+          tier={mtdTier}
+          caption={MTD_CAPTIONS[mtdTier]}
+        />
+        <ProgressCat
+          icon={<YtdCatIcon tier={ytdTier} />}
+          title={`This year vs. fees${cardScopeSuffix}`}
+          valueLabel={stats.totalAnnualFees > 0 ? `${fmtMoneyPlain(stats.capturedThisYear)} / ${fmtMoneyPlain(stats.totalAnnualFees)}` : fmtMoney(stats.capturedThisYear)}
+          pct={ytdPct}
+          tier={ytdTier}
+          caption={YTD_CAPTIONS[ytdTier]}
+        />
       </div>
 
       {showFees && (
@@ -1356,6 +1404,124 @@ function CatSittingIcon() {
       <circle cx="37" cy="31.3" r="1.1" fill={colors.bg} />
       <polygon points="32,36 30,39 34,39" fill={colors.rose} />
     </svg>
+  );
+}
+
+// Two mood-tiered mascots (0 = just starting, 3 = goal maxed out) built on the same
+// faces as CatFaceIcon/CatCardIcon above, each gaining a visible accessory per tier so
+// progress reads at a glance without needing to check the numbers.
+function MtdCatIcon({ tier }) {
+  return (
+    <svg viewBox="0 0 64 64" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="14,18 22,30 10,30" fill="#EFEAE1" />
+      <polygon points="50,18 54,30 42,30" fill="#EFEAE1" />
+      <circle cx="32" cy="36" r="20" fill="#EFEAE1" />
+      {tier >= 1 && (
+        <>
+          <circle cx="18" cy="40" r="4" fill={colors.rose} opacity="0.4" />
+          <circle cx="46" cy="40" r="4" fill={colors.rose} opacity="0.4" />
+        </>
+      )}
+      {tier >= 2 ? (
+        <>
+          <rect x="18" y="30" width="12" height="8" rx="3" fill={colors.border2} />
+          <rect x="34" y="30" width="12" height="8" rx="3" fill={colors.border2} />
+          <rect x="30" y="32" width="4" height="2" fill={colors.border2} />
+        </>
+      ) : (
+        <>
+          <circle cx="24" cy="34" r="4.2" fill={colors.slateBlue} />
+          <circle cx="40" cy="34" r="4.2" fill={colors.slateBlue} />
+          <circle cx="24" cy="33" r="1.6" fill={colors.bg} />
+          <circle cx="40" cy="33" r="1.6" fill={colors.bg} />
+        </>
+      )}
+      <polygon points="32,42 29,46 35,46" fill={colors.rose} />
+      <path d="M32 46 Q32 49 29 49" stroke={colors.border2} strokeWidth="1.4" fill="none" />
+      <path d="M8 38 L20 40 M8 44 L20 42 M56 38 L44 40 M56 44 L44 42" stroke={colors.border2} strokeWidth="1.4" strokeLinecap="round" />
+      {tier >= 3 && (
+        <g>
+          <polygon points="32,1 25,15 39,15" fill={colors.gold} />
+          <circle cx="32" cy="1" r="2.4" fill={colors.rose} />
+          <circle cx="8" cy="12" r="1.6" fill={colors.gold} />
+          <circle cx="56" cy="12" r="1.6" fill={colors.sage} />
+          <circle cx="4" cy="24" r="1.3" fill={colors.rose} />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function YtdCatIcon({ tier }) {
+  return (
+    <svg viewBox="0 0 64 64" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="22" cy="54" rx="7.5" ry="6" fill="#EFEAE1" />
+      <ellipse cx="42" cy="54" rx="7.5" ry="6" fill="#EFEAE1" />
+      <polygon points="12,24 18,4 29,21" fill="#EFEAE1" />
+      <polygon points="15.5,20.5 18.5,9 25,19" fill="#E9CFCF" />
+      <polygon points="52,24 46,4 35,21" fill="#EFEAE1" />
+      <polygon points="48.5,20.5 45.5,9 39,19" fill="#E9CFCF" />
+      <path
+        d="M32 13 C22 13 16 18.5 15 26 C14.3 32 16 38 20 43 C23 47.5 27 50.5 32 51.5 C37 50.5 41 47.5 44 43 C48 38 49.7 32 49 26 C48 18.5 42 13 32 13 Z"
+        fill="#EFEAE1"
+      />
+      {tier >= 1 && (
+        <g transform="translate(32,45)">
+          <polygon points="-5,0 0,-3 0,3" fill={colors.rose} />
+          <polygon points="5,0 0,-3 0,3" fill={colors.rose} />
+          <circle cx="0" cy="0" r="1.6" fill={colors.gold} />
+        </g>
+      )}
+      {tier >= 2 ? (
+        <>
+          <rect x="17" y="25" width="11" height="8" rx="3" fill={colors.border2} />
+          <rect x="36" y="25" width="11" height="8" rx="3" fill={colors.border2} />
+          <rect x="28" y="27" width="8" height="2" fill={colors.border2} />
+        </>
+      ) : (
+        <>
+          <circle cx="24.5" cy="29.5" r="4" fill={colors.slateBlue} />
+          <circle cx="39.5" cy="29.5" r="4" fill={colors.slateBlue} />
+          <circle cx="24.5" cy="28.3" r="1.5" fill={colors.bg} />
+          <circle cx="39.5" cy="28.3" r="1.5" fill={colors.bg} />
+        </>
+      )}
+      <polygon points="32,37.5 29.7,40.5 34.3,40.5" fill={colors.rose} />
+      <g transform="translate(32,53) rotate(-6)">
+        <rect x="-13" y="-8" width="26" height="16" rx="2.6" fill={colors.gold} />
+        <rect x="-13" y="-2.6" width="26" height="3.6" fill={colors.bg} opacity="0.35" />
+      </g>
+      {tier >= 3 && (
+        <g transform="translate(32,7)">
+          <polygon points="-10,6 -10,-2 -5,3 0,-6 5,3 10,-2 10,6" fill={colors.gold} />
+          <circle cx="-10" cy="-2" r="1.3" fill={colors.rose} />
+          <circle cx="0" cy="-6" r="1.5" fill={colors.rose} />
+          <circle cx="10" cy="-2" r="1.3" fill={colors.rose} />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function ProgressCat({ icon, title, valueLabel, pct, tier, caption }) {
+  return (
+    <div style={S.mascotCard}>
+      <div style={S.mascotIconWrap}>{icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={S.mascotTitle}>{title}</div>
+        <div style={S.mascotValue}>{valueLabel}</div>
+        <div style={S.mascotBar}>
+          <div
+            style={{
+              ...S.mascotBarFill,
+              width: `${Math.min(100, pct * 100)}%`,
+              background: tier >= 3 ? colors.sage : tier >= 2 ? colors.gold : colors.slateBlue,
+            }}
+          />
+        </div>
+        <div style={S.mascotCaption}>{caption}</div>
+      </div>
+    </div>
   );
 }
 
@@ -2245,6 +2411,14 @@ const S = {
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 10 },
   iconStrip: { display: "flex", justifyContent: "space-between", marginBottom: 16 },
   iconTile: { width: 56, height: 56, borderRadius: 12, background: colors.surface, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  mascotRow: { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" },
+  mascotCard: { flex: "1 1 220px", display: "flex", gap: 12, alignItems: "center", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: "12px 14px" },
+  mascotIconWrap: { flexShrink: 0, width: 44, height: 44 },
+  mascotTitle: { fontFamily: fonts.mono, fontSize: 11, color: colors.muted, letterSpacing: "0.03em", textTransform: "uppercase" },
+  mascotValue: { fontFamily: fonts.serif, fontSize: 18, color: colors.text, marginTop: 1 },
+  mascotBar: { height: 4, borderRadius: 2, background: colors.border, overflow: "hidden", marginTop: 6 },
+  mascotBarFill: { height: "100%", borderRadius: 2, transition: "width 0.4s ease, background 0.4s ease" },
+  mascotCaption: { fontSize: 12, color: colors.muted, marginTop: 5 },
   eyebrow: { fontSize: 12, color: colors.gold, fontFamily: fonts.mono, letterSpacing: "0.02em", marginBottom: 6 },
   h1: { fontFamily: fonts.serif, fontWeight: 500, fontSize: 32, margin: 0, letterSpacing: "-0.01em" },
   errorBanner: { fontSize: 12, color: colors.roseText, fontFamily: fonts.mono, padding: "6px 10px", border: `1px solid ${colors.rose}`, borderRadius: 6 },
