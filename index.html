@@ -689,6 +689,10 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     // cap (single, cumulative) project forward — counters and open-ended cash-back offers
     // don't have a cap that repeats predictably, so they only count what's on the table
     // right now.
+    // Credits worth flagging before they reset unused: same "urgent" window the row
+    // itself highlights (5 days), same exclusion of counter/offer modes (no fixed cap to
+    // lose), just gathered into one ranked list instead of requiring a scroll to notice.
+    const expiringSoon = [];
     scopedBenefits.forEach((b) => {
       const mode = b.trackingMode || "single";
       const info = getPeriodInfo(b.periodicity, now, b.resetMonth, b.resetDay);
@@ -696,6 +700,10 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       const cap = Number(b.value) || 0;
       const redeemed = redeemedValue(b, u);
       const currentRemaining = isBenefitDone(b, u) ? 0 : Math.max(0, cap - redeemed);
+
+      if (mode !== "counter" && mode !== "offer" && info.daysLeft <= 5 && currentRemaining > 0) {
+        expiringSoon.push({ benefit: b, remaining: currentRemaining, daysLeft: info.daysLeft });
+      }
 
       let futurePeriods = 0;
       if (mode === "single" || mode === "cumulative") {
@@ -709,9 +717,11 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       remainingPotential += remainingForYear;
     });
 
+    expiringSoon.sort((a, b) => b.remaining - a.remaining);
+
     const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
     const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
-    return { capturedThisYear, capturedThisMonth, monthlyPotential, remainingPotential, capturedByBenefit, capturedByCategory, totalAnnualFees };
+    return { capturedThisYear, capturedThisMonth, monthlyPotential, remainingPotential, capturedByBenefit, capturedByCategory, totalAnnualFees, expiringSoon };
   }, [usage, benefits, cards, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   // Two playful progress mascots: one for the whole year against the cards' combined
@@ -942,6 +952,43 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           </div>
         )}
       </div>
+
+      {stats.expiringSoon.length > 0 && (
+        <div style={S.expiringBanner}>
+          <div style={S.expiringHeader}>
+            <Clock size={15} color={S.colors.roseText} />
+            <span style={S.expiringHeaderText}>
+              {stats.expiringSoon.length} credit{stats.expiringSoon.length === 1 ? "" : "s"} worth {fmtMoney(stats.expiringSoon.reduce((s, e) => s + e.remaining, 0))} expiring in the next 5 days
+            </span>
+          </div>
+          <div style={S.expiringList}>
+            {stats.expiringSoon.slice(0, 6).map(({ benefit, remaining, daysLeft }) => {
+              const card = cards.find((c) => c.id === benefit.cardId);
+              return (
+                <div
+                  key={benefit.id}
+                  className="lg-historyrow"
+                  style={S.expiringRow}
+                  onClick={() => setDetailBenefitId(benefit.id)}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                    <span style={S.rowName}>{benefit.name}</span>
+                    {isAllSelected && card && (
+                      <span style={{ fontSize: 11, color: S.colors.muted, fontFamily: S.fonts.mono, marginTop: 1 }}>{card.name}</span>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontFamily: S.fonts.mono, fontSize: 13, color: S.colors.text }}>{fmtMoney(remaining)}</div>
+                    <div style={{ fontSize: 11, color: S.colors.roseText, fontFamily: S.fonts.mono, marginTop: 1 }}>
+                      {daysLeft === 0 ? "last day" : `${daysLeft}d left`}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={S.mascotRow}>
         <ProgressCat
@@ -2360,6 +2407,7 @@ function GripVertical(p) {
     </Icon>
   );
 }
+function Clock(p) { return <Icon {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Icon>; }
 function Sparkles(p) {
   const c = p.color || "currentColor";
   return (
@@ -2411,6 +2459,11 @@ const S = {
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 10 },
   iconStrip: { display: "flex", justifyContent: "space-between", marginBottom: 16 },
   iconTile: { width: 56, height: 56, borderRadius: 12, background: colors.surface, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  expiringBanner: { background: "rgba(168,80,104,0.1)", border: `1px solid ${colors.rose}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 },
+  expiringHeader: { display: "flex", alignItems: "center", gap: 8 },
+  expiringHeaderText: { fontSize: 13.5, color: colors.roseText, fontFamily: fonts.mono },
+  expiringList: { marginTop: 10, display: "flex", flexDirection: "column", gap: 2 },
+  expiringRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "7px 4px", cursor: "pointer", borderRadius: 6 },
   mascotRow: { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" },
   mascotCard: { flex: "1 1 220px", display: "flex", gap: 12, alignItems: "center", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: "12px 14px" },
   mascotIconWrap: { flexShrink: 0, width: 44, height: 44 },
