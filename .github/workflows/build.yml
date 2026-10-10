@@ -1,0 +1,34 @@
+# Keeps app.js (what the browser runs) in step with src/app.jsx (what people edit).
+# Compiling ahead of time means the phone no longer downloads Babel and translates the
+# whole app on every launch. Runs on any branch; commits the rebuilt file back.
+name: Build app.js
+
+on:
+  push:
+    paths:
+      - "src/app.jsx"
+      - "package.json"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - name: Commit the rebuilt bundle if it changed
+        run: |
+          if git diff --quiet -- app.js; then echo "app.js already up to date"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git commit -m "Rebuild app.js from src/app.jsx"
+          git push
