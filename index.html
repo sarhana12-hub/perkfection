@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Purrkfection</title>
+<meta name="description" content="Track every credit-card benefit and whether you've captured it this period.">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14171C">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +14,7 @@
 <link rel="icon" href="icons/favicon.ico">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <style>
   html{ color-scheme: dark; }
   *{box-sizing:border-box;}
@@ -26,12 +27,20 @@
 <body>
 <div id="root"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// Installs the offline shell. Registration was missing entirely, so sw.js never ran and the
+// "installed app" had no cache to fall back on when the network dropped.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
@@ -65,12 +74,35 @@ function loadLocalCode(uid) { const k = localCodeKey(uid); if (!k) return null; 
 function saveLocalCode(uid, code) { const k = localCodeKey(uid); if (k) { try { localStorage.setItem(k, code); } catch (e) {} } }
 function forgetLocalCode(uid) { const k = localCodeKey(uid); if (k) { try { localStorage.removeItem(k); } catch (e) {} } }
 
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
+// Resolves true when the text landed on the clipboard. Never throws, even where the async
+// Clipboard API is missing (plain-http origins, older in-app browsers).
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(() => true).catch(() => fallbackCopy(text));
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+
 function localNameKey(uid) { return uid ? `perkfection:name:${uid}` : null; }
 function loadLocalName(uid) { const k = localNameKey(uid); if (!k) return null; try { return localStorage.getItem(k); } catch (e) { return null; } }
 function saveLocalName(uid, name) { const k = localNameKey(uid); if (k) { try { localStorage.setItem(k, name); } catch (e) {} } }
 function forgetLocalName(uid) { const k = localNameKey(uid); if (k) { try { localStorage.removeItem(k); } catch (e) {} } }
 
-const STORAGE_KEY = "benefits-ledger-v1"; // unused now; kept for reference
+const DEFAULT_LEDGER_NAME = "Card Benefits Ledger";
 
 const PALETTE = [
   "#1B4B43", // pine
@@ -197,7 +229,7 @@ function buildDefaultSeed() {
     cards.push({ id: cardId, name: t.name, issuer: t.issuer, annualFee: t.annualFee, color: DEFAULT_CARD_COLORS[t.name] || PALETTE[i % PALETTE.length] });
     t.benefits.forEach((b) => benefits.push({ id: uid(), cardId, ...b }));
   });
-  return { cards, benefits, usage: {}, ledgerName: "Card Benefits Ledger" };
+  return { cards, benefits, usage: {}, ledgerName: DEFAULT_LEDGER_NAME };
 }
 
 function fmtMoney(n) {
@@ -260,26 +292,29 @@ function getPeriodInfo(periodicity, date = new Date(), resetMonth, resetDay) {
 
 // Turns a stored period key (e.g. "2026-03", "2026-Q1", "2026-H1", "2026", or the
 // anniversary-style "2026-03-15") back into a readable label and a sortable date, for
-// browsing past periods in the History view.
+// browsing past periods in the History view. The shape is read off the key itself rather
+// than the benefit's current periodicity, so entries logged before a benefit's cadence was
+// edited still get a sensible label instead of "Invalid Date".
 function parsePeriodKey(periodicity, key) {
-  const year = Number(key.slice(0, 4));
-  if (periodicity === "monthly") {
-    const m = Number(key.slice(5, 7));
-    return { label: new Date(year, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }), sortDate: new Date(year, m - 1, 1) };
-  }
-  if (periodicity === "quarterly") {
-    const q = Number(key.slice(6, 7));
+  const k = String(key);
+  const year = Number(k.slice(0, 4));
+  let m;
+  if ((m = /^\d{4}-Q(\d)$/.exec(k))) {
+    const q = Number(m[1]);
     return { label: `Q${q} ${year}`, sortDate: new Date(year, (q - 1) * 3, 1) };
   }
-  if (periodicity === "semiannual") {
-    const h = Number(key.slice(6, 7));
+  if ((m = /^\d{4}-H(\d)$/.exec(k))) {
+    const h = Number(m[1]);
     return { label: h === 1 ? `Jan–Jun ${year}` : `Jul–Dec ${year}`, sortDate: new Date(year, h === 1 ? 0 : 6, 1) };
   }
-  if (key.length > 4) {
+  if ((m = /^\d{4}-(\d{2})$/.exec(k))) {
+    const mo = Number(m[1]);
+    return { label: new Date(year, mo - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }), sortDate: new Date(year, mo - 1, 1) };
+  }
+  if ((m = /^\d{4}-(\d{2})-(\d{2})$/.exec(k))) {
     // Anniversary-based annual credit: "YYYY-MM-DD" marks the start of that credit's cycle.
-    const parts = key.split("-");
-    const am = Number(parts[1]) - 1;
-    const ad = Number(parts[2]);
+    const am = Number(m[1]) - 1;
+    const ad = Number(m[2]);
     const start = new Date(year, am, ad);
     const end = new Date(year + 1, am, ad - 1);
     return {
@@ -347,9 +382,17 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const [view, setView] = useState("ledger"); // "ledger" | "history"
   const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
   const [viewDate, setViewDate] = useState(null); // null = live/today; otherwise editing that past period
-  const [ledgerName, setLedgerName] = useState("Willis Family Card Benefits Ledger");
+  const [ledgerName, setLedgerName] = useState(DEFAULT_LEDGER_NAME);
   const [showSettings, setShowSettings] = useState(false);
   const [showFilterSort, setShowFilterSort] = useState(false);
+  const [dropTargetId, setDropTargetId] = useState(null); // row currently hovered while dragging another
+
+  // The latest known ledger, readable synchronously. Every mutator below derives its next
+  // state from this rather than from the render-time closure, so a delayed apply (the
+  // two-second "celebrate" before a check-off lands) or two quick taps on different rows
+  // can't overwrite each other with stale data. `meta` carries document fields this
+  // component doesn't edit (createdAt) so a full write doesn't silently drop them.
+  const stateRef = useRef({ cards: [], benefits: [], usage: {}, ledgerName: DEFAULT_LEDGER_NAME, meta: {} });
 
   // Live shared data: subscribes to this instance's Firestore document and mirrors it
   // into local state; every write below re-sends the full {cards, benefits, usage}
@@ -358,10 +401,19 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     const unsub = instanceRef.onSnapshot(
       (snap) => {
         const data = snap.data() || { cards: [], benefits: [], usage: {} };
-        setCards(data.cards || []);
-        setBenefits(data.benefits || []);
-        setUsage(data.usage || {});
-        setLedgerName(data.ledgerName || "Willis Family Card Benefits Ledger");
+        const meta = {};
+        if (data.createdAt !== undefined) meta.createdAt = data.createdAt;
+        stateRef.current = {
+          cards: data.cards || [],
+          benefits: data.benefits || [],
+          usage: data.usage || {},
+          ledgerName: data.ledgerName || DEFAULT_LEDGER_NAME,
+          meta,
+        };
+        setCards(stateRef.current.cards);
+        setBenefits(stateRef.current.benefits);
+        setUsage(stateRef.current.usage);
+        setLedgerName(stateRef.current.ledgerName);
         setLoaded(true);
       },
       () => {
@@ -384,20 +436,49 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
   const commit = useCallback(
     (updates) => {
+      const cur = stateRef.current;
       const next = {
-        cards: updates.cards ?? cards,
-        benefits: updates.benefits ?? benefits,
-        usage: updates.usage ?? usage,
-        ledgerName: updates.ledgerName ?? ledgerName,
+        cards: updates.cards ?? cur.cards,
+        benefits: updates.benefits ?? cur.benefits,
+        usage: updates.usage ?? cur.usage,
+        ledgerName: updates.ledgerName ?? cur.ledgerName,
       };
-      if (updates.cards) setCards(updates.cards);
-      if (updates.benefits) setBenefits(updates.benefits);
-      if (updates.usage) setUsage(updates.usage);
-      if (updates.ledgerName !== undefined) setLedgerName(updates.ledgerName);
-      persist(next);
+      stateRef.current = { ...next, meta: cur.meta };
+      if (updates.cards) setCards(next.cards);
+      if (updates.benefits) setBenefits(next.benefits);
+      if (updates.usage) setUsage(next.usage);
+      if (updates.ledgerName !== undefined) setLedgerName(next.ledgerName);
+      persist({ ...cur.meta, ...next });
     },
-    [cards, benefits, usage, ledgerName, persist]
+    [persist]
   );
+
+  // Usage is the hot path shared between everyone on a ledger, so a single entry is written
+  // as a one-field update rather than a whole-document set: two people logging different
+  // credits at the same moment no longer overwrite each other. Falls back to a full write
+  // only if the targeted update is refused (e.g. the document somehow doesn't exist yet).
+  const commitUsageEntry = useCallback(
+    (usageKey, entry) => {
+      const cur = stateRef.current;
+      const nextUsage = { ...cur.usage };
+      if (entry) nextUsage[usageKey] = entry;
+      else delete nextUsage[usageKey];
+      stateRef.current = { ...cur, usage: nextUsage };
+      setUsage(nextUsage);
+      const field = new firebase.firestore.FieldPath("usage", usageKey);
+      const value = entry ? entry : firebase.firestore.FieldValue.delete();
+      instanceRef
+        .update(field, value)
+        .then(() => setError(null))
+        .catch(() => persist({ ...cur.meta, cards: cur.cards, benefits: cur.benefits, usage: nextUsage, ledgerName: cur.ledgerName }));
+    },
+    [instanceRef, persist]
+  );
+
+  // Every usage entry records when and by whom it was logged — the display name people
+  // pick on first launch exists for exactly this, so changes on a shared ledger can be
+  // told apart.
+  const stamp = () => ({ updatedAt: new Date().toISOString(), ...(userLabel ? { by: userLabel } : {}) });
 
   const fileInputRef = useRef(null);
   const [pendingImport, setPendingImport] = useState(null);
@@ -445,27 +526,17 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
   const toggleSingleUsage = (benefitId, periodKey) => {
     const usageKey = `${benefitId}:${periodKey}`;
-    const wasUsed = !!(usage[usageKey]?.used || usage[usageKey]?.done);
-    const nextUsage = { ...usage };
-    if (wasUsed) delete nextUsage[usageKey];
-    else nextUsage[usageKey] = { used: true, updatedAt: new Date().toISOString() };
-    commit({ usage: nextUsage });
+    const existing = stateRef.current.usage[usageKey];
+    const wasUsed = !!(existing?.used || existing?.done);
+    commitUsageEntry(usageKey, wasUsed ? null : { used: true, ...stamp() });
   };
 
   const setUsageAmount = (benefitId, periodKey, amount) => {
-    const usageKey = `${benefitId}:${periodKey}`;
-    const nextUsage = { ...usage };
-    if (amount <= 0) delete nextUsage[usageKey];
-    else nextUsage[usageKey] = { amount, updatedAt: new Date().toISOString() };
-    commit({ usage: nextUsage });
+    commitUsageEntry(`${benefitId}:${periodKey}`, amount <= 0 ? null : { amount, ...stamp() });
   };
 
   const setUsageCount = (benefitId, periodKey, count) => {
-    const usageKey = `${benefitId}:${periodKey}`;
-    const nextUsage = { ...usage };
-    if (count <= 0) delete nextUsage[usageKey];
-    else nextUsage[usageKey] = { count, updatedAt: new Date().toISOString() };
-    commit({ usage: nextUsage });
+    commitUsageEntry(`${benefitId}:${periodKey}`, count <= 0 ? null : { count, ...stamp() });
   };
 
   // Cash-back offers accumulate: each entry adds to whatever's already logged for that
@@ -473,15 +544,13 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   // redeemed within the same period.
   const addOfferAmount = (benefitId, periodKey, delta) => {
     const usageKey = `${benefitId}:${periodKey}`;
-    const current = Number(usage[usageKey]?.amount) || 0;
+    const current = Number(stateRef.current.usage[usageKey]?.amount) || 0;
     const next = current + (Number(delta) || 0);
-    const nextUsage = { ...usage };
-    if (next <= 0) delete nextUsage[usageKey];
-    else nextUsage[usageKey] = { amount: next, updatedAt: new Date().toISOString() };
-    commit({ usage: nextUsage });
+    commitUsageEntry(usageKey, next <= 0 ? null : { amount: next, ...stamp() });
   };
 
   const saveCard = (card) => {
+    const { cards } = stateRef.current;
     const exists = cards.some((c) => c.id === card.id);
     const nextCards = exists ? cards.map((c) => (c.id === card.id ? card : c)) : [...cards, card];
     commit({ cards: nextCards });
@@ -489,6 +558,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   };
 
   const deleteCard = (cardId) => {
+    const { cards, benefits, usage } = stateRef.current;
     const nextCards = cards.filter((c) => c.id !== cardId);
     const removedBenefitIds = benefits.filter((b) => b.cardId === cardId).map((b) => b.id);
     const nextBenefits = benefits.filter((b) => b.cardId !== cardId);
@@ -507,6 +577,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   };
 
   const saveBenefit = (benefit) => {
+    const { benefits } = stateRef.current;
     const exists = benefits.some((b) => b.id === benefit.id);
     const nextBenefits = exists ? benefits.map((b) => (b.id === benefit.id ? benefit : b)) : [...benefits, benefit];
     commit({ benefits: nextBenefits });
@@ -514,6 +585,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   };
 
   const deleteBenefit = (benefitId) => {
+    const { benefits, usage } = stateRef.current;
     const nextBenefits = benefits.filter((b) => b.id !== benefitId);
     const nextUsage = { ...usage };
     Object.keys(nextUsage).forEach((k) => {
@@ -527,6 +599,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   // stored in — dropping one credit onto another moves it to sit right before that one.
   const reorderBenefit = (draggedId, targetId) => {
     if (draggedId === targetId) return;
+    const { benefits } = stateRef.current;
     const draggedIndex = benefits.findIndex((b) => b.id === draggedId);
     if (draggedIndex === -1) return;
     const next = [...benefits];
@@ -541,9 +614,12 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   };
 
   const addTemplate = (template) => {
+    const { cards, benefits } = stateRef.current;
     const cardId = uid();
-    const colorIndex = cards.length % PALETTE.length;
-    const newCard = { id: cardId, name: template.name, issuer: template.issuer, annualFee: template.annualFee, color: PALETTE[colorIndex] };
+    const taken = new Set(cards.map((c) => c.color));
+    const signature = DEFAULT_CARD_COLORS[template.name];
+    const color = signature && !taken.has(signature) ? signature : PALETTE.find((c) => !taken.has(c)) || PALETTE[cards.length % PALETTE.length];
+    const newCard = { id: cardId, name: template.name, issuer: template.issuer, annualFee: template.annualFee, color };
     const newBenefits = template.benefits.map((b) => ({ id: uid(), cardId, ...b }));
     commit({ cards: [...cards, newCard], benefits: [...benefits, ...newBenefits] });
     setShowTemplates(false);
@@ -571,7 +647,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   const uncategorizedBenefits = useMemo(() => benefits.filter((b) => !b.category), [benefits]);
 
   const saveCategorization = (choices) => {
-    const nextBenefits = benefits.map((b) => (choices[b.id] ? { ...b, category: choices[b.id] } : b));
+    const nextBenefits = stateRef.current.benefits.map((b) => (choices[b.id] ? { ...b, category: choices[b.id] } : b));
     commit({ benefits: nextBenefits });
   };
 
@@ -638,6 +714,10 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     const scopedBenefits = isAllCategoriesSelected ? cardScopedBenefits : cardScopedBenefits.filter((b) => selectedCategoryIds.has(b.category));
     const benefitsById = Object.fromEntries(scopedBenefits.map((b) => [b.id, b]));
     const cardScopedBenefitsById = Object.fromEntries(cardScopedBenefits.map((b) => [b.id, b]));
+    const allBenefitsById = Object.fromEntries(benefits.map((b) => [b.id, b]));
+    // Per-card year-to-date capture, across every card regardless of filter, so each card
+    // tile can show how much of its annual fee it has earned back so far.
+    const capturedByCard = {};
     let capturedThisYear = 0;
     let capturedThisMonth = 0;
     let capturedThisMonthCount = 0;
@@ -653,6 +733,10 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       const periodKey = k.slice(sep + 1);
       const b = benefitsById[benefitId];
       const cardScopedB = cardScopedBenefitsById[benefitId];
+      const anyB = allBenefitsById[benefitId];
+      if (anyB && periodKey.slice(0, 4) === String(year)) {
+        capturedByCard[anyB.cardId] = (capturedByCard[anyB.cardId] || 0) + redeemedValue(anyB, u);
+      }
       if (cardScopedB && periodKey.slice(0, 4) === String(year)) {
         const catVal = redeemedValue(cardScopedB, u);
         const cat = cardScopedB.category;
@@ -675,11 +759,16 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     });
 
     let monthlyPotential = 0;
+    // Everything with a fixed dollar cap, multiplied out across the calendar year — the
+    // denominator for "are we on pace", so counters and open-ended offers don't count.
+    let annualPotential = 0;
+    const PERIODS_PER_YEAR = { monthly: 12, quarterly: 4, semiannual: 2, annual: 1 };
     scopedBenefits.forEach((b) => {
       const mode = b.trackingMode || "single";
-      if (b.periodicity === "monthly" && (mode === "single" || mode === "cumulative")) {
-        monthlyPotential += Number(b.value) || 0;
-      }
+      if (mode !== "single" && mode !== "cumulative") return;
+      const cap = Number(b.value) || 0;
+      if (b.periodicity === "monthly") monthlyPotential += cap;
+      annualPotential += cap * (PERIODS_PER_YEAR[b.periodicity] || 1);
     });
 
     const capturedByBenefit = Object.entries(capturedByBenefitMap)
@@ -729,7 +818,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
     const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
     const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
-    return { capturedThisYear, capturedThisMonth, capturedThisMonthCount, monthlyPotential, remainingPotential, capturedByBenefit, capturedByCategory, totalAnnualFees, expiringSoon };
+    return { capturedThisYear, capturedThisMonth, capturedThisMonthCount, monthlyPotential, annualPotential, remainingPotential, capturedByBenefit, capturedByCategory, capturedByCard, totalAnnualFees, expiringSoon };
   }, [usage, benefits, cards, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   // A playful progress mascot for the current month against what's actually capturable
@@ -753,18 +842,29 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       ? `${mtdCoins} credits logged this month — the coins are stacking up`
       : `${mtdCoins} credits logged — this cat is thoroughly spoiled`;
 
+  // The app launched in 2026, but an imported backup can carry older entries — the year
+  // chips and backfill months reach back to whichever is earlier.
+  const earliestYear = useMemo(() => {
+    let earliest = 2026;
+    Object.keys(usage).forEach((k) => {
+      const y = Number(k.slice(k.indexOf(":") + 1, k.indexOf(":") + 5));
+      if (y >= 2000 && y < earliest) earliest = y;
+    });
+    return earliest;
+  }, [usage]);
+
   const historyYears = useMemo(() => {
     const current = new Date().getFullYear();
     const years = [];
-    for (let y = 2026; y <= current; y++) years.push(y);
+    for (let y = earliestYear; y <= current; y++) years.push(y);
     return years;
-  }, []);
+  }, [earliestYear]);
 
-  // Months selectable for backfilling past periods: January 2026 through the current month.
+  // Months selectable for backfilling past periods: the earliest year through the current month.
   const periodOptions = useMemo(() => {
     const now = new Date();
     const opts = [];
-    let y = 2026;
+    let y = earliestYear;
     let m = 0;
     while (y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth())) {
       const d = new Date(y, m, 1);
@@ -773,7 +873,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       if (m > 11) { m = 0; y += 1; }
     }
     return opts.reverse(); // most recent first
-  }, []);
+  }, [earliestYear]);
 
   const historyEntries = useMemo(() => {
     const benefitsById = Object.fromEntries(benefits.map((b) => [b.id, b]));
@@ -803,6 +903,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   }, [usage, benefits, cards, historyYear, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   const historyTotal = useMemo(() => historyEntries.reduce((s, e) => s + e.redeemed, 0), [historyEntries]);
+  const yearFrac = getPeriodInfo("annual").fracElapsed;
 
   if (!loaded) {
     return (
@@ -903,7 +1004,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           Captured this year{cardScopeSuffix}
         </div>
         <div style={S.heroTopRow}>
-          <div style={S.heroValue}>{fmtMoney(stats.capturedThisYear)}</div>
+          <div style={S.heroValue}>{fmtMoneyPlain(stats.capturedThisYear)}</div>
           {stats.capturedByBenefit.length > 0 && (
             <button
               type="button"
@@ -924,6 +1025,26 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
               : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of fees`
             : `${new Date().getFullYear()}`}
         </div>
+        {stats.annualPotential > 0 && (() => {
+          // Captured-so-far against everything capturable this year, with a tick at how far
+          // through the year we are: fill ahead of the tick means on pace, behind means
+          // credits are quietly going unused.
+          const capPct = Math.min(1, stats.capturedThisYear / stats.annualPotential);
+          const onPace = capPct >= yearFrac - 0.05;
+          const paceColor = capPct >= 1 ? S.colors.sage : onPace ? S.colors.sage : S.colors.amber;
+          return (
+            <div style={S.paceWrap}>
+              <div style={S.paceTrack}>
+                <div style={{ ...S.paceFill, width: `${capPct * 100}%`, background: paceColor }} />
+                <div style={{ ...S.paceMarker, left: `${yearFrac * 100}%` }} title={`${Math.round(yearFrac * 100)}% of the year elapsed`} />
+              </div>
+              <div style={S.paceCaption}>
+                <span style={{ color: paceColor }}>{capPct >= 1 ? "Maxed out" : onPace ? "On pace" : "Behind pace"}</span>
+                {` · ${Math.round(capPct * 100)}% of ${fmtMoneyWhole(stats.annualPotential)} possible · ${Math.round(yearFrac * 100)}% of the year gone`}
+              </div>
+            </div>
+          );
+        })()}
         {showCapturedDetail && (
           <div style={S.capturedDetailList}>
             {CATEGORIES.map((c) => {
@@ -1113,7 +1234,13 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search benefits, vendors, notes…"
+                aria-label="Search benefits"
               />
+              {searchQuery && (
+                <button type="button" className="lg-searchclear" style={S.searchClear} onClick={() => setSearchQuery("")} aria-label="Clear search">
+                  <X size={14} />
+                </button>
+              )}
             </div>
             <select
               style={{ ...S.sortSelect, color: viewDate ? S.colors.gold : S.colors.muted, borderColor: viewDate ? S.colors.gold : S.colors.border }}
@@ -1184,6 +1311,8 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                       isHistorical={!!viewDate}
                       reorderable={sortMode === "custom"}
                       onReorder={reorderBenefit}
+                      onDragHover={setDropTargetId}
+                      isDropTarget={dropTargetId === b.id}
                       onToggleSingle={toggleSingleUsage}
                       onSetAmount={setUsageAmount}
                       onSetCount={setUsageCount}
@@ -1297,6 +1426,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       {showFilterSort && (
         <FilterSortModal
           cards={cards}
+          capturedByCard={stats.capturedByCard}
           selectedCardIds={selectedCardIds}
           setSelectedCardIds={setSelectedCardIds}
           isAllSelected={isAllSelected}
@@ -1499,7 +1629,7 @@ function ProgressCat({ icon, title, valueLabel, pct, tier, caption }) {
   );
 }
 
-function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, onReorder, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onOpenDetail }) {
+function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, reorderable, onReorder, onDragHover, isDropTarget, onToggleSingle, onSetAmount, onSetCount, onAddOfferAmount, onOpenDetail }) {
   const mode = benefit.trackingMode || "single";
   const info = getPeriodInfo(benefit.periodicity, periodDate || new Date(), benefit.resetMonth, benefit.resetDay);
   const usageEntry = usage[`${benefit.id}:${info.key}`];
@@ -1547,14 +1677,29 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
   };
+  const rowUnderPointer = (e) => document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-benefit-row]")?.getAttribute("data-benefit-row") || null;
+  // While dragging, highlight the row the credit would land in front of, and nudge the page
+  // when the pointer nears the top or bottom edge so long lists can be reordered without
+  // letting go (pointer capture otherwise blocks scrolling on touch).
+  const handleGripMove = (e) => {
+    if (!dragging) return;
+    const id = rowUnderPointer(e);
+    if (onDragHover) onDragHover(id === benefit.id ? null : id);
+    const edge = 72;
+    if (e.clientY < edge) window.scrollBy(0, -10);
+    else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, 10);
+  };
   const handleGripUp = (e) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
     setDragging(false);
-    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-benefit-row]");
-    const targetId = target?.getAttribute("data-benefit-row");
+    if (onDragHover) onDragHover(null);
+    const targetId = rowUnderPointer(e);
     if (targetId) onReorder(benefit.id, targetId);
   };
-  const handleGripCancel = () => setDragging(false);
+  const handleGripCancel = () => {
+    setDragging(false);
+    if (onDragHover) onDragHover(null);
+  };
 
   const openLog = () => {
     setDraft(mode === "offer" ? "" : String(amountUsed || ""));
@@ -1572,7 +1717,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
 
   return (
     <div
-      className={`lg-row${completing ? " lg-row-completing" : ""}`}
+      className={`lg-row${completing ? " lg-row-completing" : ""}${isDropTarget ? " lg-row-droptarget" : ""}`}
       data-benefit-row={benefit.id}
       style={{ ...S.row, opacity: dragging ? 0.4 : 1 }}
     >
@@ -1580,20 +1725,23 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
         <span
           style={{ ...S.dragHandle, touchAction: "none" }}
           aria-hidden="true"
+          title="Drag to reorder"
           onPointerDown={handleGripDown}
+          onPointerMove={handleGripMove}
           onPointerUp={handleGripUp}
           onPointerCancel={handleGripCancel}
         >
           <GripVertical size={14} />
         </span>
       )}
-      <div style={S.rowControls}>
+      <div className="lg-rowcontrols" style={S.rowControls}>
         {mode === "single" && (
           <button
             type="button"
             className="lg-check"
             style={{ ...S.checkbox, position: "relative", background: visuallyDone ? S.colors.sage : "transparent", borderColor: visuallyDone ? S.colors.sage : S.colors.border }}
             onClick={() => (done ? onToggleSingle(benefit.id, info.key) : celebrate(() => onToggleSingle(benefit.id, info.key)))}
+            aria-pressed={done}
             aria-label={done ? "Mark unused" : "Mark used"}
             title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
           >
@@ -1632,6 +1780,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
                 borderColor: visuallyDone ? S.colors.sage : S.colors.border,
               }}
               onClick={() => (done ? onSetAmount(benefit.id, info.key, 0) : celebrate(() => onSetAmount(benefit.id, info.key, cap)))}
+              aria-pressed={done}
               aria-label={done ? "Mark unused" : "Mark fully used"}
               title={done ? "Click to mark unused" : "Click to mark this credit fully used"}
             >
@@ -1649,8 +1798,8 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
                 {visuallyDone && <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />}
               </span>
             </button>
-            <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount">
-              <Pencil size={12} /> Log
+            <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount" title="Log a partial amount">
+              <Pencil size={12} /> <span className="lg-logtext">Log</span>
             </button>
           </div>
         )}
@@ -1668,7 +1817,10 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
               type="number"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              className="lg-loginput"
               style={S.logInput}
+              inputMode="decimal"
+              aria-label={mode === "offer" ? "Cash back earned" : "Amount used"}
               placeholder={mode === "offer" ? "$ earned" : undefined}
               onKeyDown={(e) => {
                 if (e.key === "Enter") saveLog();
@@ -1690,7 +1842,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
           </div>
           {showCard && card && (
             <div style={S.rowMeta}>
-              <span style={S.cardBadge}>
+              <span className="lg-cardbadge" style={S.cardBadge}>
                 <span style={{ width: 9, height: 9, borderRadius: "50%", background: card.color, display: "inline-block", flexShrink: 0, marginTop: 4 }} />
                 <span style={S.cardBadgeText}>{card.name}</span>
               </span>
@@ -1756,13 +1908,29 @@ function EmptyState({ onAdd, onTemplates }) {
   );
 }
 
-function Modal({ children, onClose, title }) {
+function Modal({ children, onClose, title, wide }) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  // Escape closes, and the page behind stops scrolling while a sheet is open (on iOS the
+  // background otherwise scrolls along with any flick inside the modal).
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onCloseRef.current(); };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
   return (
-    <div style={S.overlay} onClick={onClose}>
-      <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+    <div className="lg-overlay" style={S.overlay} onClick={onClose}>
+      <div className="lg-modal" role="dialog" aria-modal="true" aria-label={title} style={{ ...S.modal, ...(wide ? { width: 560 } : {}) }} onClick={(e) => e.stopPropagation()}>
         <div style={S.modalHeader}>
           <span style={S.modalTitle}>{title}</span>
-          <X size={18} style={S.iconBtn} onClick={onClose} />
+          <button type="button" className="lg-modalclose" style={S.modalClose} onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
         </div>
         {children}
       </div>
@@ -1810,17 +1978,28 @@ function CategorizeBackfillModal({ benefits, cards, onSave }) {
   );
 }
 
+// Membership toggle for the card/category filter sets. An empty set means "everything",
+// so deselecting the last item naturally falls back to showing all.
+function toggleIn(setter, id) {
+  setter((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+}
+
 function FilterSortModal({
-  cards, selectedCardIds, setSelectedCardIds, isAllSelected,
+  cards, capturedByCard = {}, selectedCardIds, setSelectedCardIds, isAllSelected,
   selectedCategoryIds, setSelectedCategoryIds, isAllCategoriesSelected,
   sortMode, setSortMode,
   onAddCard, onEditCard, onDeleteCard,
   onClose,
 }) {
   return (
-    <Modal onClose={onClose} title="Filter & sort">
+    <Modal onClose={onClose} title="Filter & sort" wide>
       <Field label="Cards">
-        <div style={S.filterCardGrid}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
           <button
             type="button"
             className="lg-chip"
@@ -1830,6 +2009,13 @@ function FilterSortModal({
           >
             All cards
           </button>
+          {!isAllSelected && (
+            <span style={{ fontSize: 12, color: S.colors.muted }}>
+              {selectedCardIds.size} selected · tap a card to add or remove it
+            </span>
+          )}
+        </div>
+        <div style={S.filterCardGrid}>
           {cards.map((c) => (
             <div
               key={c.id}
@@ -1840,35 +2026,42 @@ function FilterSortModal({
                 boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset",
                 opacity: isAllSelected || selectedCardIds.has(c.id) ? 1 : 0.55,
               }}
-              onClick={(e) => {
-                if (e.metaKey || e.ctrlKey) {
-                  setSelectedCardIds((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(c.id)) next.delete(c.id);
-                    else next.add(c.id);
-                    return next;
-                  });
-                } else {
-                  setSelectedCardIds(new Set([c.id]));
-                }
-              }}
-              title="Click to select. Ctrl/Cmd-click to select more than one."
+              role="button"
+              tabIndex={0}
+              aria-pressed={selectedCardIds.has(c.id)}
+              onClick={() => toggleIn(setSelectedCardIds, c.id)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleIn(setSelectedCardIds, c.id); } }}
+              title="Tap to toggle this card. Tap more than one to compare them."
             >
               <div style={S.cardTileTop}>
-                <span style={S.cardTileName}>{c.name}</span>
+                <span className="lg-cardtilename" style={S.cardTileName}>{c.name}</span>
                 <div className="lg-cardactions">
-                  <Pencil size={13} style={S.iconBtn} onClick={(e) => { e.stopPropagation(); onEditCard(c); }} />
-                  <Trash2 size={13} style={S.iconBtn} onClick={(e) => { e.stopPropagation(); onDeleteCard(c); }} />
+                  <button type="button" style={S.cardActionBtn} aria-label={`Edit ${c.name}`} onClick={(e) => { e.stopPropagation(); onEditCard(c); }}><Pencil size={13} /></button>
+                  <button type="button" style={S.cardActionBtn} aria-label={`Delete ${c.name}`} onClick={(e) => { e.stopPropagation(); onDeleteCard(c); }}><Trash2 size={13} /></button>
                 </div>
               </div>
               <div style={S.cardTileIssuer}>{c.issuer}</div>
-              <div style={S.cardTileFee}>{fmtMoney(c.annualFee)} / yr</div>
+              {(() => {
+                const captured = capturedByCard[c.id] || 0;
+                const fee = Number(c.annualFee) || 0;
+                const pct = fee > 0 ? Math.min(1, captured / fee) : captured > 0 ? 1 : 0;
+                return (
+                  <div>
+                    <div style={S.cardTileBar}>
+                      <div style={{ ...S.cardTileBarFill, width: `${pct * 100}%`, background: pct >= 1 ? colors.sage : "rgba(244,241,234,0.85)" }} />
+                    </div>
+                    <div style={S.cardTileFee}>
+                      {fee > 0 ? `${fmtMoneyWhole(captured)} of ${fmtMoneyWhole(fee)} fee` : `${fmtMoneyWhole(captured)} captured · no fee`}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ))}
-          <button type="button" className="lg-chip" style={S.addCardChip} onClick={onAddCard}>
-            <Plus size={14} /> Add card
-          </button>
         </div>
+        <button type="button" className="lg-chip lg-addcard" style={S.addCardChip} onClick={onAddCard}>
+          <Plus size={14} /> Add card
+        </button>
       </Field>
 
       <Field label="Categories">
@@ -1888,19 +2081,9 @@ function FilterSortModal({
               type="button"
               className="lg-chip"
               style={{ ...S.chip, ...(selectedCategoryIds.has(c.id) ? S.chipActive : {}) }}
-              onClick={(e) => {
-                if (e.metaKey || e.ctrlKey) {
-                  setSelectedCategoryIds((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(c.id)) next.delete(c.id);
-                    else next.add(c.id);
-                    return next;
-                  });
-                } else {
-                  setSelectedCategoryIds(new Set([c.id]));
-                }
-              }}
-              title="Click to select. Ctrl/Cmd-click to select more than one."
+              aria-pressed={selectedCategoryIds.has(c.id)}
+              onClick={() => toggleIn(setSelectedCategoryIds, c.id)}
+              title="Tap to toggle. Tap several to combine them."
             >
               {c.label}
             </button>
@@ -1925,6 +2108,11 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [urlCopyFeedback, setUrlCopyFeedback] = useState(false);
   const siteUrl = window.location.origin + window.location.pathname;
+  const inviteUrl = `${siteUrl}?code=${encodeURIComponent(ledgerCode)}`;
+  const canShare = typeof navigator.share === "function";
+  const shareInvite = () => {
+    navigator.share({ title: "Join my Purrkfection ledger", text: `Join my card-benefits ledger "${ledgerName}" — code ${ledgerCode}`, url: inviteUrl }).catch(() => {});
+  };
 
   const saveName = () => {
     const trimmed = nameDraft.trim();
@@ -1932,14 +2120,16 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
   };
 
   const copyCode = () => {
-    navigator.clipboard?.writeText(ledgerCode).then(() => {
+    copyText(ledgerCode).then((ok) => {
+      if (!ok) return;
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
     });
   };
 
   const copyUrl = () => {
-    navigator.clipboard?.writeText(siteUrl).then(() => {
+    copyText(inviteUrl).then((ok) => {
+      if (!ok) return;
       setUrlCopyFeedback(true);
       setTimeout(() => setUrlCopyFeedback(false), 1500);
     });
@@ -1969,11 +2159,16 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
         <div style={S.codeMenuHint}>Share this code with anyone else who should see this ledger — they'll enter it and pick a name to join.</div>
       </Field>
 
-      <Field label="Site link">
+      <Field label="Invite link">
         <div style={{ ...S.codeMenuCode, fontSize: 13, wordBreak: "break-all" }} onClick={copyUrl} title="Click to copy">
-          {siteUrl} {urlCopyFeedback ? "✓ copied" : ""}
+          {inviteUrl} {urlCopyFeedback ? "✓ copied" : ""}
         </div>
-        <div style={S.codeMenuHint}>Send this link along with the ledger code above so they can open the app and join.</div>
+        <div style={S.codeMenuHint}>One link does it all — opening it joins this ledger directly, no code to type.</div>
+        {canShare && (
+          <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, marginTop: 10, width: "100%" }} onClick={shareInvite}>
+            Share invite…
+          </button>
+        )}
       </Field>
 
       <Field label="Backup">
@@ -2049,6 +2244,12 @@ function BenefitDetailModal({ benefit, card, usage, periodDate, isHistorical, yt
           <div style={S.detailStatValue}>{fmtMoney(ytdTotal)}</div>
         </div>
       </div>
+
+      {usageEntry?.updatedAt && (
+        <div style={{ fontSize: 11.5, color: S.colors.muted, fontFamily: S.fonts.mono, marginBottom: 10 }}>
+          Logged{usageEntry.by ? ` by ${usageEntry.by}` : ""} · {new Date(usageEntry.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+        </div>
+      )}
 
       {mode !== "offer" && (
         <div style={{ ...S.progressTrack, maxWidth: "none", height: 6, marginTop: 2, marginBottom: 22 }}>
@@ -2499,8 +2700,9 @@ const S = {
     paddingBottom: "max(60px, env(safe-area-inset-bottom))",
     paddingLeft: "max(24px, env(safe-area-inset-left))",
     paddingRight: "max(24px, env(safe-area-inset-right))",
-    minHeight: 400,
-    borderRadius: 12,
+    minHeight: "100vh",
+    maxWidth: 860,
+    margin: "0 auto",
   },
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 10 },
   iconStrip: { display: "flex", justifyContent: "space-between", marginBottom: 16 },
@@ -2528,6 +2730,11 @@ const S = {
   heroTopRow: { display: "flex", alignItems: "center", gap: 8 },
   heroValue: { fontSize: 48, lineHeight: 1.05, fontFamily: fonts.mono, fontWeight: 500, color: colors.sage },
   heroSub: { fontSize: 13, color: colors.muted, marginTop: 8 },
+  paceWrap: { marginTop: 14 },
+  paceTrack: { position: "relative", height: 6, borderRadius: 3, background: colors.border, overflow: "visible" },
+  paceFill: { height: "100%", borderRadius: 3, transition: "width 0.5s ease, background 0.4s ease" },
+  paceMarker: { position: "absolute", top: -3, width: 2, height: 12, marginLeft: -1, background: colors.text, opacity: 0.7, borderRadius: 1 },
+  paceCaption: { fontSize: 11.5, color: colors.muted, fontFamily: fonts.mono, marginTop: 8, lineHeight: 1.4 },
   detailToggleBtn: { width: 30, height: 30, borderRadius: "50%", border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6 },
   capturedDetailList: { display: "flex", flexDirection: "column", marginTop: 16, borderTop: `1px solid ${colors.border}`, paddingTop: 8 },
   capturedDetailRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "8px 2px", borderBottom: `1px solid ${colors.border}` },
@@ -2541,8 +2748,11 @@ const S = {
   filterCardGrid: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" },
   chip: { flexShrink: 0, background: colors.surface, border: `1px solid ${colors.border}`, color: colors.muted, borderRadius: 20, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans },
   chipActive: { background: colors.surface2, color: colors.text, borderColor: colors.gold },
-  addCardChip: { flexShrink: 0, display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 10, padding: "0 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, height: 118 },
-  cardTile: { flexShrink: 0, width: 200, height: 118, borderRadius: 10, padding: "14px 16px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, position: "relative", overflow: "hidden", boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset" },
+  addCardChip: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 8, padding: "9px 14px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, marginTop: 10 },
+  cardActionBtn: { width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.18)", border: "none", borderRadius: 6, color: "rgba(244,241,234,0.85)", cursor: "pointer", padding: 0 },
+  cardTileBar: { height: 3, borderRadius: 2, background: "rgba(0,0,0,0.25)", overflow: "hidden", marginBottom: 5 },
+  cardTileBarFill: { height: "100%", borderRadius: 2, transition: "width 0.4s ease" },
+  cardTile: { flexShrink: 0, width: 200, height: 132, borderRadius: 10, padding: "14px 16px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, position: "relative", overflow: "hidden", boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset" },
   cardTileTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
   cardTileName: {
     fontFamily: fonts.serif,
@@ -2561,6 +2771,7 @@ const S = {
   toolbar: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
   searchBox: { display: "flex", alignItems: "center", gap: 8, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "7px 10px", flex: "1 1 220px", minWidth: 180 },
   searchInput: { background: "transparent", border: "none", outline: "none", color: colors.text, fontSize: 13, fontFamily: fonts.sans, width: "100%" },
+  searchClear: { display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", border: "none", background: "transparent", color: colors.muted, cursor: "pointer", flexShrink: 0, padding: 0 },
   sortSelect: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "7px 10px", color: colors.muted, fontSize: 13, fontFamily: fonts.sans, cursor: "pointer" },
   historyTotalRow: { display: "flex", justifyContent: "space-between", alignItems: "baseline", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "12px 16px", margin: "14px 0" },
   historyTotalLabel: { fontSize: 13, color: colors.muted, fontFamily: fonts.mono },
@@ -2612,6 +2823,7 @@ const S = {
   modal: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 22, width: 380, maxWidth: "100%", maxHeight: "85vh", overflowY: "auto" },
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   modalTitle: { fontFamily: fonts.serif, fontSize: 19, color: colors.text },
+  modalClose: { width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", borderRadius: 8, color: colors.muted, cursor: "pointer", padding: 0, marginRight: -6 },
   input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 11px", color: colors.text, fontSize: 14, fontFamily: fonts.sans, boxSizing: "border-box" },
   fieldError: { fontSize: 12, color: colors.roseText, marginTop: 6, fontFamily: fonts.sans },
   btnPrimary: { background: colors.gold, color: "#181410", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
@@ -2649,6 +2861,35 @@ const CSS_TEXT = `
   .lg-btn-danger:hover { filter: brightness(1.1); }
   .lg-template:hover { border-color: ${colors.gold}; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: ${colors.gold} !important; }
+  button:focus-visible, [role="button"]:focus-visible { outline: 2px solid ${colors.gold}; outline-offset: 2px; }
+  .lg-modalclose:hover { color: ${colors.text}; background: rgba(255,255,255,0.05); }
+  .lg-searchclear:hover { color: ${colors.text}; }
+  .lg-row-droptarget { box-shadow: inset 0 2px 0 ${colors.gold}; }
+  @keyframes lg-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes lg-sheet-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  .lg-overlay { animation: lg-fade 0.15s ease; }
+  .lg-modal { animation: lg-sheet-up 0.2s ease; }
+  @media (max-width: 600px) {
+    /* Modals become bottom sheets on phones: thumb-reachable, and the keyboard pushes them up
+       instead of hiding a centred dialog's buttons. */
+    .lg-overlay { align-items: flex-end !important; padding: 0 !important; }
+    .lg-modal { width: 100% !important; max-width: none !important; max-height: 92vh !important; border-radius: 16px 16px 0 0 !important; border-bottom: none !important; padding-bottom: calc(22px + env(safe-area-inset-bottom)) !important; }
+    /* iOS Safari zooms the page when a focused field is under 16px. */
+    input, select, textarea { font-size: 16px !important; }
+    .lg-loginput { width: 72px !important; }
+    /* Tighter rows: the partial-log pill collapses to its icon so the name column gets the width. */
+    .lg-row { gap: 10px !important; padding-left: 2px !important; padding-right: 2px !important; }
+    .lg-rowcontrols { min-width: 56px !important; }
+    .lg-logtext { display: none; }
+    .lg-logpartial { padding: 6px !important; border-radius: 50% !important; }
+    .lg-cardbadge { font-size: 12px !important; }
+    /* Card tiles: two per row instead of a fixed 200px that stacks one-per-row on phones. */
+    .lg-cardtile { width: calc(50% - 5px) !important; }
+    .lg-cardtile .lg-cardtilename { font-size: 14px !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
   ::-webkit-scrollbar { height: 6px; width: 6px; }
   ::-webkit-scrollbar-thumb { background: ${colors.border2}; border-radius: 4px; }
 `;
@@ -2678,6 +2919,7 @@ function AuthGate() {
   const [joinDraft, setJoinDraft] = useState("");
   const [justCreatedCode, setJustCreatedCode] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -2709,21 +2951,49 @@ function AuthGate() {
       } else {
         setNeedsName(true);
       }
+      // An invite link (?code=PERK-7X2) wins over whatever ledger was open last, so one tap
+      // on a shared link joins the right ledger with nothing to type.
+      const urlCode = (new URLSearchParams(window.location.search).get("code") || "").trim().toUpperCase();
       const cached = loadLocalCode(u.uid);
-      if (cached) {
-        setResolvingCode(true);
-        db.collection(LEDGERS_COLLECTION).doc(cached).get().then((snap) => {
+      const stripCodeParam = () => {
+        try { window.history.replaceState({}, "", window.location.pathname + window.location.hash); } catch (e) {}
+      };
+      if (!urlCode && !cached) {
+        setLedgerCode(null);
+        return;
+      }
+      setResolvingCode(true);
+      (async () => {
+        try {
+          if (urlCode) {
+            const snap = await db.collection(LEDGERS_COLLECTION).doc(urlCode).get();
+            stripCodeParam();
+            if (snap.exists) {
+              saveLocalCode(u.uid, urlCode);
+              setLedgerCode(urlCode);
+              return;
+            }
+            if (!cached) {
+              setMode("join");
+              setJoinDraft(urlCode);
+              setError(`No ledger found for the code in that link (${urlCode}) — it may be out of date.`);
+              setLedgerCode(null);
+              return;
+            }
+          }
+          const snap = await db.collection(LEDGERS_COLLECTION).doc(cached).get();
           if (snap.exists) {
             setLedgerCode(cached);
           } else {
             forgetLocalCode(u.uid);
             setLedgerCode(null);
           }
+        } catch (e) {
+          // Offline and nothing cached: fall through to the chooser rather than hanging.
+        } finally {
           setResolvingCode(false);
-        }).catch(() => setResolvingCode(false));
-      } else {
-        setLedgerCode(null);
-      }
+        }
+      })();
     });
   }, []);
 
@@ -2762,7 +3032,8 @@ function AuthGate() {
   };
 
   const copyJustCreatedCode = () => {
-    navigator.clipboard?.writeText(justCreatedCode).then(() => {
+    copyText(justCreatedCode).then((ok) => {
+      if (!ok) return;
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
     });
@@ -2835,6 +3106,14 @@ function AuthGate() {
           <div style={{ fontSize: 12, color: colors.muted, textAlign: "center", marginTop: 6 }}>
             {copyFeedback ? "✓ copied" : "Tap to copy"}
           </div>
+          <button
+            type="button"
+            className="lg-btn-ghost"
+            style={{ ...S.btnGhost, width: "100%", marginTop: 14 }}
+            onClick={() => copyText(`${window.location.origin}${window.location.pathname}?code=${encodeURIComponent(justCreatedCode)}`).then((ok) => { if (ok) { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1500); } })}
+          >
+            {linkCopied ? "✓ Invite link copied" : "Copy invite link instead"}
+          </button>
           <button
             type="button"
             className="lg-btn-primary"
