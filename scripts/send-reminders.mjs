@@ -72,7 +72,12 @@ async function loadLedgers() {
     return { ledgers: Object.entries(raw).map(([id, data]) => ({ id, data })), writeBack: async () => {} };
   }
   const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!sa) throw new Error("FIREBASE_SERVICE_ACCOUNT is not set (paste the service-account JSON into that secret).");
+  if (!sa) {
+    // Not configured yet: say so and stop cleanly, rather than failing the scheduled run
+    // every day (and emailing the owner about it) until the secrets are added.
+    console.log("Reminders are not set up yet: the FIREBASE_SERVICE_ACCOUNT secret is missing. See README → Push reminders. Nothing sent.");
+    return null;
+  }
   const admin = require("firebase-admin");
   admin.initializeApp({ credential: admin.credential.cert(JSON.parse(sa)) });
   const db = admin.firestore();
@@ -91,10 +96,15 @@ async function loadLedgers() {
 }
 
 async function main() {
-  const { ledgers, writeBack } = await loadLedgers();
+  const loaded = await loadLedgers();
+  if (!loaded) return;
+  const { ledgers, writeBack } = loaded;
   let webpush = null;
   if (!DRY_RUN) {
-    if (!process.env.VAPID_PRIVATE_KEY) throw new Error("VAPID_PRIVATE_KEY is not set.");
+    if (!process.env.VAPID_PRIVATE_KEY) {
+      console.log("Reminders are not set up yet: the VAPID_PRIVATE_KEY secret is missing. See README → Push reminders. Nothing sent.");
+      return;
+    }
     webpush = require("web-push");
     const appSrc = readFileSync(path.join(here, "..", "src", "app.jsx"), "utf8");
     const publicKey = (appSrc.match(/const VAPID_PUBLIC_KEY = "([^"]+)"/) || [])[1];
