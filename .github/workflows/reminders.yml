@@ -25,7 +25,10 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      # continue-on-error keeps the run green even if a push service is down or a secret
+      # is wrong, so GitHub never emails about it. Details are still in the run's log.
       - run: node scripts/send-reminders.mjs ${{ inputs.dry_run && '--dry-run' || '' }}
+        continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
