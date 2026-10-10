@@ -3,7 +3,7 @@
 A shared ledger for tracking credit-card perks — which credits you've captured this period,
 what's about to reset unused, and how much each card has earned back against its fee.
 
-The whole app is `index.html` (React, compiled in the browser) backed by one Firestore
+The whole app is one page (`index.html` + `app.js`, React) backed by one Firestore
 document per ledger. People sharing a ledger join with a code or an invite link. Hosted as
 static files (GitHub Pages works as-is).
 
@@ -11,11 +11,25 @@ static files (GitHub Pages works as-is).
 
 | Path | What it is |
 | --- | --- |
-| `index.html` | The app. |
+| `index.html` | The page shell: theme tokens, launch screens, script tags. |
+| `src/app.jsx` | The application source. **Edit this**, not `app.js`. |
+| `app.js` | `src/app.jsx` compiled for browsers. Rebuilt by `npm run build` or automatically by the *Build app.js* workflow on every push that touches the source. |
 | `ledger-math.js` | Period, redemption and expiry rules shared by the app and the reminder sender. |
 | `sw.js` | Service worker: offline shell cache plus push-notification display. |
 | `scripts/send-reminders.mjs` | Finds expiring credits per subscribed device and sends Web Push notifications. |
 | `.github/workflows/reminders.yml` | Runs the sender once a day. |
+| `.github/workflows/build.yml` | Recompiles `app.js` when `src/app.jsx` changes and commits it. |
+
+## Editing the app
+
+```
+npm install
+npm run build      # src/app.jsx -> app.js
+```
+
+Open `index.html` from any static server to try it. If you edit `src/app.jsx` and push without
+building, the workflow builds and commits `app.js` for you within a minute or two; the live
+site updates once that commit lands on the branch GitHub Pages publishes from.
 
 ## Push reminders — one-time setup
 

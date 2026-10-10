@@ -1,5 +1,5 @@
-const CACHE = 'perkfection-v3';
-const SHELL = ['./', './index.html', './ledger-math.js', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'perkfection-v4';
+const SHELL = ['./', './index.html', './app.js', './ledger-math.js', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 // Only the app shell and the static libraries it loads are worth caching. Firestore's
 // long-polling channel and auth endpoints are live streams, not assets — caching them

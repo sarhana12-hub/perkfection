@@ -3,11 +3,15 @@
   "private": true,
   "description": "Static PWA (index.html) plus the push-reminder sender that GitHub Actions runs once a day.",
   "scripts": {
+    "build": "esbuild src/app.jsx --jsx=transform --jsx-factory=React.createElement --jsx-fragment=React.Fragment --target=safari13 --minify --legal-comments=none --outfile=app.js",
     "reminders": "node scripts/send-reminders.mjs",
     "reminders:dry-run": "node scripts/send-reminders.mjs --dry-run"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
     "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
   }
 }

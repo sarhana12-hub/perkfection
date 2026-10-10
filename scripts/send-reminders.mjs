@@ -96,9 +96,9 @@ async function main() {
   if (!DRY_RUN) {
     if (!process.env.VAPID_PRIVATE_KEY) throw new Error("VAPID_PRIVATE_KEY is not set.");
     webpush = require("web-push");
-    const indexHtml = readFileSync(path.join(here, "..", "index.html"), "utf8");
-    const publicKey = (indexHtml.match(/const VAPID_PUBLIC_KEY = "([^"]+)"/) || [])[1];
-    if (!publicKey || publicKey.startsWith("__")) throw new Error("VAPID_PUBLIC_KEY in index.html is not set.");
+    const appSrc = readFileSync(path.join(here, "..", "src", "app.jsx"), "utf8");
+    const publicKey = (appSrc.match(/const VAPID_PUBLIC_KEY = "([^"]+)"/) || [])[1];
+    if (!publicKey || publicKey.startsWith("__")) throw new Error("VAPID_PUBLIC_KEY in src/app.jsx is not set.");
     webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:owner@example.com", publicKey, process.env.VAPID_PRIVATE_KEY);
   }
   const appUrl = process.env.APP_URL || "./";
