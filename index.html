@@ -8,21 +8,92 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14171C">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Purrkfection">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- Launch screens: without these iOS shows a blank white screen while the app loads. One per
+     iPhone size and colour scheme, generated from the app icon. -->
+<link rel="apple-touch-startup-image" href="icons/splash/dark-750x1334.png" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1242x2208.png" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1125x2436.png" media="(prefers-color-scheme: dark) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-828x1792.png" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1242x2688.png" media="(prefers-color-scheme: dark) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1080x2340.png" media="(prefers-color-scheme: dark) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1170x2532.png" media="(prefers-color-scheme: dark) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1284x2778.png" media="(prefers-color-scheme: dark) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1179x2556.png" media="(prefers-color-scheme: dark) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1290x2796.png" media="(prefers-color-scheme: dark) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1206x2622.png" media="(prefers-color-scheme: dark) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/dark-1320x2868.png" media="(prefers-color-scheme: dark) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-750x1334.png" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1242x2208.png" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1125x2436.png" media="(prefers-color-scheme: light) and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-828x1792.png" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1242x2688.png" media="(prefers-color-scheme: light) and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1080x2340.png" media="(prefers-color-scheme: light) and (device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1170x2532.png" media="(prefers-color-scheme: light) and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1284x2778.png" media="(prefers-color-scheme: light) and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1179x2556.png" media="(prefers-color-scheme: light) and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1290x2796.png" media="(prefers-color-scheme: light) and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1206x2622.png" media="(prefers-color-scheme: light) and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/light-1320x2868.png" media="(prefers-color-scheme: light) and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
 <link rel="icon" href="icons/favicon.ico">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-  html{ color-scheme: dark; }
+  /* Theme tokens. Dark is the default; light follows the system unless a theme was chosen
+     in Settings, which sets data-theme on <html>. */
+  :root {
+    --bg: #14171C; --surface: #1B1F26; --surface2: #20252D; --border: #2C333D; --border2: #394048;
+    --text: #EFEAE1; --muted: #8D93A0; --gold: #B8925A; --sage: #6E9C82; --amber: #C98A46;
+    --rose: #A85068; --roseText: #C97088; --slateBlue: #4C7EA8;
+    --cat: #EFEAE1; --catEar: #E9CFCF; --catLine: #394048;
+    --hover: rgba(255,255,255,0.03); --overlay: rgba(10,12,15,0.6); --onAccent: #181410; --onSage: #0F1216;
+    --barBg: rgba(20,23,28,0.84); --selectArrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238D93A0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+  :root[data-theme="light"],
+  :root:not([data-theme="dark"]).lg-system-light {
+    --bg: #F4F0E7; --surface: #FFFDF8; --surface2: #EFE9DD; --border: #E0D8C9; --border2: #CBC1AF;
+    --text: #1E1B17; --muted: #6B645A; --gold: #96712F; --sage: #4B7C60; --amber: #AE6B24;
+    --rose: #A84A62; --roseText: #8B3A51; --slateBlue: #3A6A95;
+    --cat: #E9E0D0; --catEar: #E6BFBF; --catLine: #5E5346;
+    --hover: rgba(0,0,0,0.035); --overlay: rgba(45,38,28,0.45); --onAccent: #FFFCF5; --onSage: #FFFFFF;
+    --barBg: rgba(244,240,231,0.86); --selectArrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B645A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    color-scheme: light;
+  }
   *{box-sizing:border-box;}
-  html,body{ margin:0; padding:0; background:#14171C; }
-  body{ font-family: 'IBM Plex Sans', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  html,body{ margin:0; padding:0; background:var(--bg); }
+  body{ font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; color: var(--text); -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+  /* Splash-matching launch state: the icon tile centred on the background, so the hand-off
+     from the iOS launch image to the live app is seamless. */
+  .lg-launch{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:var(--bg); }
+  .lg-launch img{ width:84px; height:84px; border-radius:19px; box-shadow:0 10px 30px rgba(0,0,0,0.25); }
+  .lg-launch span{ font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--muted); }
   img{ max-width:100%; }
   [hidden]{ display:none!important; }
 </style>
+<script>
+// Applies the saved appearance ("auto" | "light" | "dark") before anything renders. "auto"
+// follows the OS; the class mirrors the media query so the CSS above can key off either.
+(function () {
+  var root = document.documentElement;
+  var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+  function apply() {
+    var pref = "auto";
+    try { pref = localStorage.getItem("perkfection:theme") || "auto"; } catch (e) {}
+    if (pref === "light" || pref === "dark") root.setAttribute("data-theme", pref);
+    else root.removeAttribute("data-theme");
+    root.classList.toggle("lg-system-light", !!(mq && mq.matches));
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", getComputedStyle(root).getPropertyValue("--bg").trim() || "#14171C");
+  }
+  window.__applyTheme = apply;
+  apply();
+  if (mq && mq.addEventListener) mq.addEventListener("change", apply);
+})();
+</script>
 </head>
 <body>
 <div id="root"></div>
@@ -284,11 +355,14 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       return next;
     });
   };
-  const [view, setView] = useState("ledger"); // "ledger" | "history"
+  // "ledger" | "history" | "settings" — the manifest's shortcuts deep-link via the hash.
+  const [view, setView] = useState(() => {
+    const h = (window.location.hash || "").slice(1);
+    return h === "history" || h === "settings" ? h : "ledger";
+  });
   const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
   const [viewDate, setViewDate] = useState(null); // null = live/today; otherwise editing that past period
   const [ledgerName, setLedgerName] = useState(DEFAULT_LEDGER_NAME);
-  const [showSettings, setShowSettings] = useState(false);
   const [showFilterSort, setShowFilterSort] = useState(false);
   const [dropTargetId, setDropTargetId] = useState(null); // row currently hovered while dragging another
 
@@ -299,6 +373,14 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   // component doesn't edit (createdAt) so a full write doesn't silently drop them.
   const stateRef = useRef({ cards: [], benefits: [], usage: {}, ledgerName: DEFAULT_LEDGER_NAME, meta: {} });
   const [pushEntries, setPushEntries] = useState({}); // push subscriptions stored on the ledger, keyed by device id
+  const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
   const [dismissedRecap, setDismissedRecap] = useState(() => { try { return localStorage.getItem(`perkfection:recap:${ledgerCode}`) || ""; } catch (e) { return ""; } });
   const dismissRecap = (key) => {
     setDismissedRecap(key);
@@ -828,8 +910,9 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
   if (!loaded) {
     return (
-      <div style={{ ...S.root, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 300 }}>
-        <span style={{ color: S.colors.muted, fontFamily: S.fonts.mono, fontSize: 13 }}>Loading ledger…</span>
+      <div className="lg-launch">
+        <img src="icons/icon-192.png" alt="" />
+        <span>Loading ledger…</span>
       </div>
     );
   }
@@ -869,57 +952,88 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   return (
     <div style={S.root}>
       <style>{CSS_TEXT}</style>
+      <input ref={fileInputRef} type="file" accept="application/json" style={{ display: "none" }} onChange={handleImportFile} />
 
-      <div style={S.iconStrip}>
-        <div style={S.iconTile}><CatFaceIcon /></div>
-        <div style={S.iconTile}><CatCardIcon /></div>
-        <div style={S.iconTile}><CatSittingIcon /></div>
-      </div>
-
-      <div style={S.header}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-          <h1 style={S.h1}>{ledgerName}</h1>
-          <span style={{ fontFamily: S.fonts.mono, fontSize: 12, color: S.colors.gold, letterSpacing: "0.04em" }}>PURRKFECTION</span>
+      <header className="lg-topbar" style={S.topBar}>
+        <div style={S.topBarInner}>
+          <div style={S.brand}>
+            <span style={S.brandMark} aria-hidden="true"><CatFaceIcon size={30} /></span>
+            <span style={S.topTitle}>{view === "history" ? "History" : view === "settings" ? "Settings" : ledgerName}</span>
+          </div>
+          <div style={S.topActions}>
+            {view === "ledger" && cards.length > 0 && (
+              <button
+                type="button"
+                className="lg-iconbtn"
+                style={S.iconBtnRound}
+                onClick={() => setBenefitModal({ cardId: isAllSelected ? cards[0]?.id : selectedCards[0]?.id })}
+                aria-label="Add benefit"
+                title="Add benefit"
+              >
+                <Plus size={22} />
+              </button>
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          {error && <div style={S.errorBanner}>{error}</div>}
-          {importError && <div style={S.errorBanner}>{importError}</div>}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            style={{ display: "none" }}
-            onChange={handleImportFile}
-          />
-          <button
-            type="button"
-            className="lg-chip"
-            style={{ ...S.chip, ...(view === "history" ? S.chipActive : {}) }}
-            onClick={() => setView((v) => (v === "history" ? "ledger" : "history"))}
-          >
-            {view === "history" ? "Back to ledger" : "History"}
-          </button>
-          <button
-            type="button"
-            className="lg-chip"
-            style={{ ...S.chip, ...(showFees ? S.chipActive : {}) }}
-            onClick={() => setShowFees((v) => !v)}
-          >
-            {showFees ? "Hide annual fees" : "Compare to annual fees"}
-          </button>
-          <button
-            type="button"
-            className="lg-backupbtn"
-            style={{ ...S.backupBtn, width: 32, height: 32, background: S.colors.surface, border: `1px solid ${S.colors.border}`, borderRadius: 8 }}
-            onClick={() => setShowSettings(true)}
-            aria-label="Settings"
-            title="Settings"
-          >
-            <Settings size={16} />
-          </button>
-        </div>
-      </div>
+        {(error || importError) && <div style={S.errorBar}>{error || importError}</div>}
+        {offline && <div style={S.offlineBar}>Offline — changes are saved on this device and sync when you're back online.</div>}
+      </header>
 
+      <main style={S.content}>
+      {view === "settings" ? (
+        <SettingsPanel
+          pushEntries={pushEntries}
+          onSavePush={savePushEntry}
+          ledgerName={ledgerName}
+          onRenameSave={(name) => commit({ ledgerName: name })}
+          ledgerCode={ledgerCode}
+          userLabel={userLabel}
+          onExport={handleExport}
+          onImportClick={() => fileInputRef.current?.click()}
+          onSwitchLedger={onSwitchLedger}
+          onSignOut={onSignOut}
+        />
+      ) : (
+      <>
+      {view === "ledger" && stats.expiringSoon.length > 0 && (
+        <div style={S.expiringBanner}>
+          <div style={S.expiringHeader}>
+            <Clock size={15} color={S.colors.roseText} />
+            <span style={S.expiringHeaderText}>
+              {stats.expiringSoon.length} credit{stats.expiringSoon.length === 1 ? "" : "s"} worth {fmtMoney(stats.expiringSoon.reduce((s, e) => s + e.remaining, 0))} expiring in the next {EXPIRING_LEAD_DAYS} days
+            </span>
+          </div>
+          <div style={S.expiringList}>
+            {stats.expiringSoon.slice(0, 6).map(({ benefit, remaining, daysLeft }) => {
+              const card = cards.find((c) => c.id === benefit.cardId);
+              return (
+                <div
+                  key={benefit.id}
+                  className="lg-historyrow"
+                  style={S.expiringRow}
+                  onClick={() => setDetailBenefitId(benefit.id)}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                    <span style={S.rowName}>{benefit.name}</span>
+                    {isAllSelected && card && (
+                      <span style={{ fontSize: 11, color: S.colors.muted, fontFamily: S.fonts.mono, marginTop: 1 }}>{card.name}</span>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontFamily: S.fonts.mono, fontSize: 13, color: S.colors.text }}>{fmtMoney(remaining)}</div>
+                    <div style={{ fontSize: 11, color: S.colors.roseText, fontFamily: S.fonts.mono, marginTop: 1 }}>
+                      {daysLeft === 0 ? "last day" : `${daysLeft}d left`}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {view === "ledger" && (
+      <div className="lg-overview" style={S.overview}>
       <div style={S.heroBox}>
         <div style={S.heroLabel}>
           Captured this year{cardScopeSuffix}
@@ -939,13 +1053,14 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
             </button>
           )}
         </div>
-        <div style={S.heroSub}>
+        <button type="button" className="lg-herosub" style={S.heroSubBtn} onClick={() => setShowFees((v) => !v)} aria-pressed={showFees}>
           {showFees
             ? stats.capturedThisYear - stats.totalAnnualFees >= 0
-              ? `+${fmtMoneyPlain(stats.capturedThisYear - stats.totalAnnualFees)} net vs fees`
-              : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of fees`
-            : `${new Date().getFullYear()}`}
-        </div>
+              ? `+${fmtMoneyPlain(stats.capturedThisYear - stats.totalAnnualFees)} net of annual fees`
+              : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of annual fees`
+            : `${new Date().getFullYear()} · compare to annual fees`}
+          <ChevronDown size={13} style={{ transform: showFees ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }} />
+        </button>
         {showCapturedDetail && (
           <div style={S.capturedDetailList}>
             {CATEGORIES.map((c) => {
@@ -1000,44 +1115,20 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         )}
       </div>
 
-      {stats.expiringSoon.length > 0 && (
-        <div style={S.expiringBanner}>
-          <div style={S.expiringHeader}>
-            <Clock size={15} color={S.colors.roseText} />
-            <span style={S.expiringHeaderText}>
-              {stats.expiringSoon.length} credit{stats.expiringSoon.length === 1 ? "" : "s"} worth {fmtMoney(stats.expiringSoon.reduce((s, e) => s + e.remaining, 0))} expiring in the next {EXPIRING_LEAD_DAYS} days
-            </span>
-          </div>
-          <div style={S.expiringList}>
-            {stats.expiringSoon.slice(0, 6).map(({ benefit, remaining, daysLeft }) => {
-              const card = cards.find((c) => c.id === benefit.cardId);
-              return (
-                <div
-                  key={benefit.id}
-                  className="lg-historyrow"
-                  style={S.expiringRow}
-                  onClick={() => setDetailBenefitId(benefit.id)}
-                >
-                  <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                    <span style={S.rowName}>{benefit.name}</span>
-                    {isAllSelected && card && (
-                      <span style={{ fontSize: 11, color: S.colors.muted, fontFamily: S.fonts.mono, marginTop: 1 }}>{card.name}</span>
-                    )}
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontFamily: S.fonts.mono, fontSize: 13, color: S.colors.text }}>{fmtMoney(remaining)}</div>
-                    <div style={{ fontSize: 11, color: S.colors.roseText, fontFamily: S.fonts.mono, marginTop: 1 }}>
-                      {daysLeft === 0 ? "last day" : `${daysLeft}d left`}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <div style={S.mascotRow}>
+        <ProgressCat
+          icon={<MtdCatIcon tier={mtdTier} coins={mtdCoins} />}
+          title={`This month${cardScopeSuffix}`}
+          valueLabel={stats.monthlyPotential > 0 ? `${fmtMoneyPlain(stats.capturedThisMonth)} / ${fmtMoneyPlain(stats.monthlyPotential)}` : fmtMoney(stats.capturedThisMonth)}
+          pct={mtdPct}
+          tier={mtdTier}
+          caption={mtdCaption}
+        />
+      </div>
+      </div>
       )}
 
-      {(() => {
+      {view === "ledger" && (() => {
         const r = stats.lastMonth;
         const show = new Date().getDate() <= 10 && r.potential > 0 && dismissedRecap !== r.key;
         if (!show) return null;
@@ -1076,18 +1167,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         );
       })()}
 
-      <div style={S.mascotRow}>
-        <ProgressCat
-          icon={<MtdCatIcon tier={mtdTier} coins={mtdCoins} />}
-          title={`This month${cardScopeSuffix}`}
-          valueLabel={stats.monthlyPotential > 0 ? `${fmtMoneyPlain(stats.capturedThisMonth)} / ${fmtMoneyPlain(stats.monthlyPotential)}` : fmtMoney(stats.capturedThisMonth)}
-          pct={mtdPct}
-          tier={mtdTier}
-          caption={mtdCaption}
-        />
-      </div>
-
-      {showFees && (
+      {view === "ledger" && showFees && (
         <div style={S.statRow}>
           <Stat label="Annual fees" value={fmtMoney(stats.totalAnnualFees)} sub={cardScopeLabel} />
           <Stat
@@ -1135,7 +1215,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
               Nothing logged for {historyYear} yet{!isAllSelected ? " for the selected card(s)" : ""}.
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div className="lg-card" style={S.periodCard}>
               {historyEntries.map((e) => (
                 <div
                   key={e.key}
@@ -1211,7 +1291,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
           {sortMode === "urgency" ? (
             flatUrgencySorted.length > 0 && (
-              <div style={S.periodSection}>
+              <div className="lg-card" style={S.periodCard}>
                 {flatUrgencySorted.map((b) => (
                   <BenefitRow
                     key={b.id}
@@ -1240,6 +1320,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                     <span>{p.label}</span>
                     <span style={S.periodRule} />
                   </div>
+                  <div className="lg-card" style={S.periodCard}>
                   {list.map((b) => (
                     <BenefitRow
                       key={b.id}
@@ -1260,20 +1341,34 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
                       onOpenDetail={(id) => setDetailBenefitId(id)}
                     />
                   ))}
+                  </div>
                 </div>
               );
             })
           )}
-          <button
-            type="button"
-            className="lg-addbenefit"
-            style={S.addBenefitBtn}
-            onClick={() => setBenefitModal({ cardId: isAllSelected ? cards[0]?.id : selectedCards[0]?.id })}
-          >
-            <Plus size={14} /> Add benefit
-          </button>
         </div>
       )}
+      </>
+      )}
+      </main>
+
+      <nav className="lg-tabbar" style={S.tabBar} aria-label="Primary">
+        <div style={S.tabBarInner}>
+          {[["ledger", "Ledger", <ListIcon size={22} />], ["history", "History", <Clock size={22} />], ["settings", "Settings", <Settings size={22} />]].map(([id, label, icon]) => (
+            <button
+              key={id}
+              type="button"
+              className="lg-tab"
+              style={{ ...S.tab, color: view === id ? S.colors.gold : S.colors.muted }}
+              onClick={() => { setView(id); window.scrollTo({ top: 0 }); }}
+              aria-current={view === id ? "page" : undefined}
+            >
+              {icon}
+              <span style={S.tabLabel}>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {cardModal && (
         <CardModal
@@ -1349,22 +1444,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         </Modal>
       )}
 
-      {showSettings && (
-        <SettingsModal
-          pushEntries={pushEntries}
-          onSavePush={savePushEntry}
-          ledgerName={ledgerName}
-          onRenameSave={(name) => commit({ ledgerName: name })}
-          ledgerCode={ledgerCode}
-          userLabel={userLabel}
-          onExport={handleExport}
-          onImportClick={() => fileInputRef.current?.click()}
-          onSwitchLedger={onSwitchLedger}
-          onSignOut={onSignOut}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
       {showFilterSort && (
         <FilterSortModal
           cards={cards}
@@ -1419,18 +1498,18 @@ function Stat({ label, value, sub, accent }) {
   );
 }
 
-function CatCardIcon() {
+function CatCardIcon({ size = 40 }) {
   return (
-    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="22" cy="54" rx="7.5" ry="6" fill="#EFEAE1" />
-      <ellipse cx="42" cy="54" rx="7.5" ry="6" fill="#EFEAE1" />
-      <polygon points="12,24 18,4 29,21" fill="#EFEAE1" />
-      <polygon points="15.5,20.5 18.5,9 25,19" fill="#E9CFCF" />
-      <polygon points="52,24 46,4 35,21" fill="#EFEAE1" />
-      <polygon points="48.5,20.5 45.5,9 39,19" fill="#E9CFCF" />
+    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="22" cy="54" rx="7.5" ry="6" fill={colors.cat} />
+      <ellipse cx="42" cy="54" rx="7.5" ry="6" fill={colors.cat} />
+      <polygon points="12,24 18,4 29,21" fill={colors.cat} />
+      <polygon points="15.5,20.5 18.5,9 25,19" fill={colors.catEar} />
+      <polygon points="52,24 46,4 35,21" fill={colors.cat} />
+      <polygon points="48.5,20.5 45.5,9 39,19" fill={colors.catEar} />
       <path
         d="M32 13 C22 13 16 18.5 15 26 C14.3 32 16 38 20 43 C23 47.5 27 50.5 32 51.5 C37 50.5 41 47.5 44 43 C48 38 49.7 32 49 26 C48 18.5 42 13 32 13 Z"
-        fill="#EFEAE1"
+        fill={colors.cat}
       />
       <circle cx="24.5" cy="29.5" r="4" fill={colors.slateBlue} />
       <circle cx="39.5" cy="29.5" r="4" fill={colors.slateBlue} />
@@ -1445,28 +1524,28 @@ function CatCardIcon() {
   );
 }
 
-function CatFaceIcon() {
+function CatFaceIcon({ size = 40 }) {
   return (
-    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="14,18 22,30 10,30" fill="#EFEAE1" />
-      <polygon points="50,18 54,30 42,30" fill="#EFEAE1" />
-      <circle cx="32" cy="36" r="20" fill="#EFEAE1" />
+    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="14,18 22,30 10,30" fill={colors.cat} />
+      <polygon points="50,18 54,30 42,30" fill={colors.cat} />
+      <circle cx="32" cy="36" r="20" fill={colors.cat} />
       <circle cx="24" cy="34" r="4.2" fill={colors.slateBlue} />
       <circle cx="40" cy="34" r="4.2" fill={colors.slateBlue} />
       <circle cx="24" cy="33" r="1.6" fill={colors.bg} />
       <circle cx="40" cy="33" r="1.6" fill={colors.bg} />
       <polygon points="32,42 29,46 35,46" fill={colors.rose} />
-      <path d="M32 46 Q32 49 29 49" stroke={colors.border2} strokeWidth="1.4" fill="none" />
-      <path d="M8 38 L20 40 M8 44 L20 42 M56 38 L44 40 M56 44 L44 42" stroke={colors.border2} strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M32 46 Q32 49 29 49" stroke={colors.catLine} strokeWidth="1.4" fill="none" />
+      <path d="M8 38 L20 40 M8 44 L20 42 M56 38 L44 40 M56 44 L44 42" stroke={colors.catLine} strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
 
-function CatSittingIcon() {
+function CatSittingIcon({ size = 40 }) {
   return (
-    <svg viewBox="0 0 64 64" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M18 58 C14 46 16 34 24 30 C20 24 22 16 28 14 C27 20 29 24 32 26 C35 24 37 20 36 14 C42 16 44 24 40 30 C48 34 50 46 46 58 Z" fill="#EFEAE1" />
-      <path d="M46 40 C54 42 58 50 54 58 C50 54 46 50 44 46 Z" fill="#EFEAE1" />
+    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 58 C14 46 16 34 24 30 C20 24 22 16 28 14 C27 20 29 24 32 26 C35 24 37 20 36 14 C42 16 44 24 40 30 C48 34 50 46 46 58 Z" fill={colors.cat} />
+      <path d="M46 40 C54 42 58 50 54 58 C50 54 46 50 44 46 Z" fill={colors.cat} />
       <circle cx="27" cy="32" r="3" fill={colors.slateBlue} />
       <circle cx="37" cy="32" r="3" fill={colors.slateBlue} />
       <circle cx="27" cy="31.3" r="1.1" fill={colors.bg} />
@@ -1489,9 +1568,9 @@ function MtdCatIcon({ tier, coins = 0 }) {
   const shownCoins = Math.min(coins, 5);
   return (
     <svg viewBox="0 0 64 64" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="14,18 22,30 10,30" fill="#EFEAE1" />
-      <polygon points="50,18 54,30 42,30" fill="#EFEAE1" />
-      <circle cx="32" cy="36" r="20" fill="#EFEAE1" />
+      <polygon points="14,18 22,30 10,30" fill={colors.cat} />
+      <polygon points="50,18 54,30 42,30" fill={colors.cat} />
+      <circle cx="32" cy="36" r="20" fill={colors.cat} />
       {tier >= 1 && (
         <>
           <circle cx="18" cy="40" r="4" fill={colors.rose} opacity="0.4" />
@@ -1500,9 +1579,9 @@ function MtdCatIcon({ tier, coins = 0 }) {
       )}
       {tier >= 2 ? (
         <>
-          <rect x="18" y="30" width="12" height="8" rx="3" fill={colors.border2} />
-          <rect x="34" y="30" width="12" height="8" rx="3" fill={colors.border2} />
-          <rect x="30" y="32" width="4" height="2" fill={colors.border2} />
+          <rect x="18" y="30" width="12" height="8" rx="3" fill={colors.catLine} />
+          <rect x="34" y="30" width="12" height="8" rx="3" fill={colors.catLine} />
+          <rect x="30" y="32" width="4" height="2" fill={colors.catLine} />
         </>
       ) : (
         <>
@@ -1515,12 +1594,12 @@ function MtdCatIcon({ tier, coins = 0 }) {
       <polygon points="32,42 29,46 35,46" fill={colors.rose} />
       <path
         d={`M${32 - smileWidth} 46 Q32 ${46 + smileDepth} ${32 + smileWidth} 46`}
-        stroke={colors.border2}
+        stroke={colors.catLine}
         strokeWidth="1.4"
         fill="none"
         strokeLinecap="round"
       />
-      <path d="M8 38 L20 40 M8 44 L20 42 M56 38 L44 40 M56 44 L44 42" stroke={colors.border2} strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M8 38 L20 40 M8 44 L20 42 M56 38 L44 40 M56 44 L44 42" stroke={colors.catLine} strokeWidth="1.4" strokeLinecap="round" />
       {tier >= 3 && (
         <g>
           <polygon points="32,1 25,15 39,15" fill={colors.gold} />
@@ -1689,7 +1768,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
           >
             {completing && <span className="lg-check-ring" aria-hidden="true" />}
             {visuallyDone ? (
-              <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />
+              <Check size={13} color={colors.onSage} strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />
             ) : (
               <Check size={13} color={S.colors.muted} strokeWidth={3} style={{ opacity: 0.3 }} />
             )}
@@ -1737,7 +1816,7 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
               )}
               {completing && <span className="lg-check-ring" aria-hidden="true" />}
               <span style={{ position: "relative", display: "flex" }}>
-                {visuallyDone && <Check size={13} color="#0F1216" strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />}
+                {visuallyDone && <Check size={13} color={colors.onSage} strokeWidth={3} className={completing ? "lg-check-celebrate" : undefined} />}
               </span>
             </button>
             <button type="button" className="lg-logpartial" style={S.logPartialBtn} onClick={openLog} aria-label="Log a partial amount" title="Log a partial amount">
@@ -1838,7 +1917,8 @@ function BenefitRow({ benefit, card, showCard, usage, periodDate, isHistorical, 
 function EmptyState({ onAdd, onTemplates }) {
   return (
     <div style={S.empty}>
-      <div style={{ fontFamily: S.fonts.serif, fontSize: 22, color: S.colors.text, marginBottom: 8 }}>No cards yet</div>
+      <div style={{ marginBottom: 12 }}><CatSittingIcon size={84} /></div>
+      <div style={{ fontFamily: S.fonts.serif, fontSize: 24, color: S.colors.text, marginBottom: 8 }}>No cards yet</div>
       <div style={{ color: S.colors.muted, fontSize: 14, marginBottom: 20, maxWidth: 420 }}>
         Add a card and its benefits, or start from a template for a common premium card.
       </div>
@@ -1868,6 +1948,7 @@ function Modal({ children, onClose, title, wide }) {
   return (
     <div className="lg-overlay" style={S.overlay} onClick={onClose}>
       <div className="lg-modal" role="dialog" aria-modal="true" aria-label={title} style={{ ...S.modal, ...(wide ? { width: 560 } : {}) }} onClick={(e) => e.stopPropagation()}>
+        <div className="lg-grabber" aria-hidden="true" />
         <div style={S.modalHeader}>
           <span style={S.modalTitle}>{title}</span>
           <button type="button" className="lg-modalclose" style={S.modalClose} onClick={onClose} aria-label="Close">
@@ -2045,10 +2126,16 @@ function FilterSortModal({
   );
 }
 
-function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, pushEntries, onSavePush, onExport, onImportClick, onSwitchLedger, onSignOut, onClose }) {
+function SettingsPanel({ ledgerName, onRenameSave, ledgerCode, userLabel, pushEntries, onSavePush, onExport, onImportClick, onSwitchLedger, onSignOut }) {
   const [nameDraft, setNameDraft] = useState(ledgerName);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [urlCopyFeedback, setUrlCopyFeedback] = useState(false);
+  const [theme, setThemeState] = useState(() => { try { return localStorage.getItem("perkfection:theme") || "auto"; } catch (e) { return "auto"; } });
+  const setTheme = (id) => {
+    setThemeState(id);
+    try { if (id === "auto") localStorage.removeItem("perkfection:theme"); else localStorage.setItem("perkfection:theme", id); } catch (e) {}
+    if (window.__applyTheme) window.__applyTheme();
+  };
   const siteUrl = window.location.origin + window.location.pathname;
   const inviteUrl = `${siteUrl}?code=${encodeURIComponent(ledgerCode)}`;
   const canShare = typeof navigator.share === "function";
@@ -2078,7 +2165,7 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, pushEn
   };
 
   return (
-    <Modal onClose={onClose} title="Settings">
+    <div style={S.settingsPanel}>
       <Field label="Ledger name">
         <div style={{ display: "flex", gap: 8 }}>
           <input
@@ -2113,6 +2200,23 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, pushEn
         )}
       </Field>
 
+      <Field label="Appearance">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[["auto", "Match system"], ["dark", "Dark"], ["light", "Light"]].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className="lg-chip"
+              style={{ ...S.chip, ...(theme === id ? S.chipActive : {}) }}
+              aria-pressed={theme === id}
+              onClick={() => setTheme(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+
       <Field label="Reminders">
         <ReminderSettings pushEntries={pushEntries} onSavePush={onSavePush} userLabel={userLabel} />
       </Field>
@@ -2135,7 +2239,8 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, pushEn
           <button type="button" className="lg-btn-ghost" style={S.btnGhost} onClick={onSignOut}>Change name</button>
         </div>
       </Field>
-    </Modal>
+      <div style={{ fontSize: 12, color: S.colors.muted, textAlign: "center", marginTop: 24, fontFamily: S.fonts.mono, letterSpacing: "0.04em" }}>PURRKFECTION</div>
+    </div>
   );
 }
 
@@ -2370,7 +2475,7 @@ function BenefitDetailModal({ benefit, card, usage, periodDate, isHistorical, yt
             ...S.btnPrimary, width: "100%", padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             background: done ? "transparent" : S.colors.sage,
             border: done ? `1px solid ${S.colors.border}` : "none",
-            color: done ? S.colors.muted : "#0F1216",
+            color: done ? S.colors.muted : S.colors.onSage,
           }}
           onClick={() => { onToggleSingle(benefit.id, info.key); closeSoon(); }}
         >
@@ -2406,7 +2511,7 @@ function BenefitDetailModal({ benefit, card, usage, periodDate, isHistorical, yt
               ...S.btnPrimary, width: "100%", marginBottom: 4,
               background: done ? "transparent" : S.colors.sage,
               border: done ? `1px solid ${S.colors.border}` : "none",
-              color: done ? S.colors.muted : "#0F1216",
+              color: done ? S.colors.muted : S.colors.onSage,
             }}
             onClick={() => { onSetAmount(benefit.id, info.key, done ? 0 : cap); closeSoon(); }}
           >
@@ -2698,8 +2803,8 @@ function BenefitModal({ benefit, cards, defaultCardId, onSave, onClose }) {
 
 function Field({ label, children }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, color: S.colors.muted, marginBottom: 6, fontFamily: S.fonts.mono }}>{label}</div>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11.5, color: S.colors.muted, marginBottom: 7, fontFamily: S.fonts.mono, letterSpacing: "0.05em", textTransform: "uppercase" }}>{label}</div>
       {children}
     </div>
   );
@@ -2744,6 +2849,7 @@ function GripVertical(p) {
     </Icon>
   );
 }
+function ListIcon(p) { return <Icon {...p}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></Icon>; }
 function Clock(p) { return <Icon {...p}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></Icon>; }
 function SlidersHorizontal(p) {
   return (
@@ -2764,54 +2870,65 @@ function Sparkles(p) {
   );
 }
 
+// Every colour is a CSS custom property (defined in <head>) so the same inline styles
+// render both the dark and the light theme.
 const colors = {
-  bg: "#14171C",
-  surface: "#1B1F26",
-  surface2: "#20252D",
-  border: "#2C333D",
-  border2: "#394048",
-  text: "#EFEAE1",
-  muted: "#8D93A0",
-  gold: "#B8925A",
-  sage: "#6E9C82",
-  amber: "#C98A46",
-  rose: "#A85068",
-  roseText: "#C97088",
-  deepBlue: "#23395B",
-  wine: "#6B2737",
-  slateBlue: "#4C7EA8",
+  bg: "var(--bg)",
+  surface: "var(--surface)",
+  surface2: "var(--surface2)",
+  border: "var(--border)",
+  border2: "var(--border2)",
+  text: "var(--text)",
+  muted: "var(--muted)",
+  gold: "var(--gold)",
+  sage: "var(--sage)",
+  amber: "var(--amber)",
+  rose: "var(--rose)",
+  roseText: "var(--roseText)",
+  slateBlue: "var(--slateBlue)",
+  cat: "var(--cat)",
+  catEar: "var(--catEar)",
+  catLine: "var(--catLine)",
+  hover: "var(--hover)",
+  overlay: "var(--overlay)",
+  onAccent: "var(--onAccent)",
+  onSage: "var(--onSage)",
 };
 
 const fonts = {
   serif: "'Fraunces', Georgia, serif",
   mono: "'IBM Plex Mono', 'SF Mono', monospace",
-  sans: "'IBM Plex Sans', system-ui, sans-serif",
+  sans: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif",
 };
 
 const S = {
   colors,
   fonts,
-  root: {
-    background: colors.bg,
-    color: colors.text,
-    fontFamily: fonts.sans,
-    paddingTop: "max(28px, env(safe-area-inset-top))",
-    paddingBottom: "max(60px, env(safe-area-inset-bottom))",
-    paddingLeft: "max(24px, env(safe-area-inset-left))",
-    paddingRight: "max(24px, env(safe-area-inset-right))",
-    minHeight: "100vh",
-    maxWidth: 860,
-    margin: "0 auto",
-  },
+  root: { background: colors.bg, color: colors.text, fontFamily: fonts.sans, minHeight: "100vh" },
+  // App shell: a translucent sticky bar on top, a tab bar pinned to the bottom (both honour
+  // the iPhone safe areas), and the content column between them.
+  topBar: { position: "sticky", top: 0, zIndex: 40, background: "var(--barBg)", backdropFilter: "saturate(180%) blur(16px)", WebkitBackdropFilter: "saturate(180%) blur(16px)", borderBottom: `1px solid ${colors.border}`, paddingTop: "env(safe-area-inset-top)" },
+  topBarInner: { height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right))", maxWidth: 860, margin: "0 auto" },
+  brand: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
+  brandMark: { width: 34, height: 34, borderRadius: 10, background: colors.surface, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  topTitle: { fontFamily: fonts.serif, fontWeight: 500, fontSize: 19, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 },
+  topActions: { display: "flex", alignItems: "center", gap: 6, flexShrink: 0 },
+  iconBtnRound: { width: 38, height: 38, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: colors.surface, border: `1px solid ${colors.border}`, color: colors.gold, cursor: "pointer", padding: 0 },
+  offlineBar: { fontSize: 12.5, color: colors.muted, background: colors.surface2, borderTop: `1px solid ${colors.border}`, padding: "6px 16px", textAlign: "center" },
+  errorBar: { fontSize: 13, color: colors.roseText, background: "rgba(168,80,104,0.12)", borderTop: `1px solid ${colors.border}`, padding: "7px 16px", textAlign: "center" },
+  content: { maxWidth: 860, margin: "0 auto", padding: "14px max(16px, env(safe-area-inset-right)) calc(78px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))" },
+  tabBar: { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, background: "var(--barBg)", backdropFilter: "saturate(180%) blur(16px)", WebkitBackdropFilter: "saturate(180%) blur(16px)", borderTop: `1px solid ${colors.border}`, paddingBottom: "env(safe-area-inset-bottom)" },
+  tabBarInner: { display: "flex", justifyContent: "space-around", alignItems: "stretch", maxWidth: 480, margin: "0 auto", height: 54 },
+  tab: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "transparent", border: "none", cursor: "pointer", fontFamily: fonts.sans, padding: "4px 0 2px" },
+  tabLabel: { fontSize: 10.5, fontWeight: 500, letterSpacing: "0.01em" },
+  settingsPanel: { paddingTop: 4 },
   header: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22, flexWrap: "wrap", gap: 10 },
-  iconStrip: { display: "flex", justifyContent: "space-between", marginBottom: 16 },
-  iconTile: { width: 56, height: 56, borderRadius: 12, background: colors.surface, border: `1px solid ${colors.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   expiringBanner: { background: "rgba(168,80,104,0.1)", border: `1px solid ${colors.rose}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 },
   expiringHeader: { display: "flex", alignItems: "center", gap: 8 },
-  expiringHeaderText: { fontSize: 13.5, color: colors.roseText, fontFamily: fonts.mono },
+  expiringHeaderText: { fontSize: 13.5, color: colors.roseText, fontFamily: fonts.sans, fontWeight: 500 },
   expiringList: { marginTop: 10, display: "flex", flexDirection: "column", gap: 2 },
   expiringRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "7px 4px", cursor: "pointer", borderRadius: 6 },
-  mascotRow: { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" },
+  mascotRow: { display: "flex", gap: 12, flexWrap: "wrap", minWidth: 0 },
   recapCard: { background: colors.surface, border: `1px solid ${colors.gold}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 },
   recapHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
   recapTitle: { fontFamily: fonts.mono, fontSize: 11, color: colors.gold, letterSpacing: "0.03em", textTransform: "uppercase" },
@@ -2819,37 +2936,39 @@ const S = {
   recapOf: { fontSize: 13, color: colors.muted, fontFamily: fonts.sans },
   recapBar: { height: 4, borderRadius: 2, background: colors.border, overflow: "hidden", marginTop: 8 },
   recapBarFill: { height: "100%", borderRadius: 2 },
-  recapCaption: { fontSize: 12.5, color: colors.muted, marginTop: 8, lineHeight: 1.5 },
+  recapCaption: { fontSize: 13, color: colors.muted, marginTop: 8, lineHeight: 1.5 },
   linkBtn: { background: "transparent", border: "none", padding: 0, color: colors.gold, fontSize: "inherit", fontFamily: "inherit", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 },
   mascotCard: { flex: "1 1 220px", display: "flex", gap: 12, alignItems: "center", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: "12px 14px" },
   mascotIconWrap: { flexShrink: 0, width: 44, height: 44 },
   mascotTitle: { fontFamily: fonts.mono, fontSize: 11, color: colors.muted, letterSpacing: "0.03em", textTransform: "uppercase" },
-  mascotValue: { fontFamily: fonts.serif, fontSize: 18, color: colors.text, marginTop: 1 },
+  mascotValue: { fontFamily: fonts.serif, fontSize: 21, color: colors.text, marginTop: 2, fontVariantNumeric: "tabular-nums" },
   mascotBar: { height: 4, borderRadius: 2, background: colors.border, overflow: "hidden", marginTop: 6 },
   mascotBarFill: { height: "100%", borderRadius: 2, transition: "width 0.4s ease, background 0.4s ease" },
-  mascotCaption: { fontSize: 12, color: colors.muted, marginTop: 5 },
+  mascotCaption: { fontSize: 13, color: colors.muted, marginTop: 5, lineHeight: 1.4 },
   eyebrow: { fontSize: 12, color: colors.gold, fontFamily: fonts.mono, letterSpacing: "0.02em", marginBottom: 6 },
-  h1: { fontFamily: fonts.serif, fontWeight: 500, fontSize: 32, margin: 0, letterSpacing: "-0.01em" },
+  h1: { fontFamily: fonts.serif, fontWeight: 500, fontSize: 32, margin: 0, letterSpacing: "-0.015em", lineHeight: 1.1 },
   errorBanner: { fontSize: 12, color: colors.roseText, fontFamily: fonts.mono, padding: "6px 10px", border: `1px solid ${colors.rose}`, borderRadius: 6 },
   historicalBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", fontSize: 13, color: colors.text, background: "rgba(184,146,90,0.12)", border: `1px solid ${colors.gold}`, borderRadius: 8, padding: "10px 14px", margin: "12px 0" },
-  statRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1, background: colors.border, marginBottom: 28, borderRadius: 8, overflow: "hidden" },
-  heroBox: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "22px 24px", marginBottom: 20 },
-  heroLabel: { fontSize: 13, color: colors.muted, fontFamily: fonts.mono, marginBottom: 6 },
+  statRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1, background: colors.border, border: `1px solid ${colors.border}`, marginBottom: 16, borderRadius: 14, overflow: "hidden" },
+  overview: { display: "grid", gridTemplateColumns: "1fr", gap: 12, marginBottom: 16 },
+  heroBox: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: "20px 22px", minWidth: 0 },
+  heroLabel: { fontSize: 11.5, color: colors.muted, fontFamily: fonts.mono, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 },
   heroTopRow: { display: "flex", alignItems: "center", gap: 8 },
-  heroValue: { fontSize: 48, lineHeight: 1.05, fontFamily: fonts.mono, fontWeight: 500, color: colors.sage },
-  heroSub: { fontSize: 13, color: colors.muted, marginTop: 8 },
-  detailToggleBtn: { width: 30, height: 30, borderRadius: "50%", border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6 },
+  heroValue: { fontSize: 54, lineHeight: 1, fontFamily: fonts.serif, fontWeight: 500, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", color: colors.sage },
+  heroSub: { fontSize: 13, color: colors.muted, marginTop: 10 },
+  heroSubBtn: { display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, background: "transparent", border: "none", padding: "4px 0", color: colors.muted, fontSize: 13.5, fontFamily: fonts.sans, cursor: "pointer" },
+  detailToggleBtn: { width: 34, height: 34, borderRadius: "50%", border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6 },
   capturedDetailList: { display: "flex", flexDirection: "column", marginTop: 16, borderTop: `1px solid ${colors.border}`, paddingTop: 8 },
   capturedDetailRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "8px 2px", borderBottom: `1px solid ${colors.border}` },
   statBox: { background: colors.surface, padding: "14px 16px" },
-  statLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 8 },
-  statValue: { fontSize: 22, fontFamily: fonts.mono, fontWeight: 500 },
-  statSub: { fontSize: 11, color: colors.muted, marginTop: 4 },
+  statLabel: { fontSize: 11.5, color: colors.muted, fontFamily: fonts.mono, letterSpacing: "0.03em", textTransform: "uppercase", marginBottom: 8 },
+  statValue: { fontSize: 26, fontFamily: fonts.serif, fontWeight: 500, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" },
+  statSub: { fontSize: 12, color: colors.muted, marginTop: 4 },
   backupBtn: { width: 32, height: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: colors.muted, cursor: "pointer" },
-  filterSortBtn: { display: "flex", alignItems: "center", gap: 8, width: "100%", background: colors.surface, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 10, padding: "10px 14px", fontSize: 13, fontFamily: fonts.mono, cursor: "pointer", marginTop: 18, marginBottom: 14 },
+  filterSortBtn: { display: "flex", alignItems: "center", gap: 8, width: "100%", background: colors.surface, border: `1px solid ${colors.border}`, color: colors.text, borderRadius: 12, padding: "11px 14px", fontSize: 14.5, fontFamily: fonts.sans, cursor: "pointer", marginTop: 4, marginBottom: 14 },
   categoryRow: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 },
   filterCardGrid: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-start" },
-  chip: { flexShrink: 0, background: colors.surface, border: `1px solid ${colors.border}`, color: colors.muted, borderRadius: 20, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans },
+  chip: { flexShrink: 0, background: colors.surface, border: `1px solid ${colors.border}`, color: colors.muted, borderRadius: 20, padding: "9px 16px", fontSize: 14, cursor: "pointer", fontFamily: fonts.sans },
   chipActive: { background: colors.surface2, color: colors.text, borderColor: colors.gold },
   addCardChip: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 8, padding: "9px 14px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, marginTop: 10 },
   cardActionBtn: { width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.18)", border: "none", borderRadius: 6, color: "rgba(244,241,234,0.85)", cursor: "pointer", padding: 0 },
@@ -2870,71 +2989,72 @@ const S = {
   },
   cardTileIssuer: { fontSize: 11.5, color: "rgba(244,241,234,0.65)", lineHeight: 1.3 },
   cardTileFee: { fontFamily: fonts.mono, fontSize: 12, color: "rgba(244,241,234,0.85)" },
-  ledger: { display: "flex", flexDirection: "column", gap: 22, marginTop: 18 },
+  ledger: { display: "flex", flexDirection: "column", gap: 20, marginTop: 4 },
   toolbar: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
-  searchBox: { display: "flex", alignItems: "center", gap: 8, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "7px 10px", flex: "1 1 220px", minWidth: 180 },
-  searchInput: { background: "transparent", border: "none", outline: "none", color: colors.text, fontSize: 13, fontFamily: fonts.sans, width: "100%" },
+  searchBox: { display: "flex", alignItems: "center", gap: 8, background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "9px 12px", flex: "1 1 220px", minWidth: 180 },
+  searchInput: { background: "transparent", border: "none", outline: "none", color: colors.text, fontSize: 16, fontFamily: fonts.sans, width: "100%" },
   searchClear: { display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", border: "none", background: "transparent", color: colors.muted, cursor: "pointer", flexShrink: 0, padding: 0 },
-  sortSelect: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "7px 10px", color: colors.muted, fontSize: 13, fontFamily: fonts.sans, cursor: "pointer" },
-  historyTotalRow: { display: "flex", justifyContent: "space-between", alignItems: "baseline", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: "12px 16px", margin: "14px 0" },
+  sortSelect: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "9px 34px 9px 12px", color: colors.text, fontSize: 15, fontFamily: fonts.sans, cursor: "pointer", WebkitAppearance: "none", appearance: "none", backgroundImage: "var(--selectArrow)", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" },
+  historyTotalRow: { display: "flex", justifyContent: "space-between", alignItems: "baseline", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 14, padding: "14px 16px", margin: "14px 0" },
   historyTotalLabel: { fontSize: 13, color: colors.muted, fontFamily: fonts.mono },
-  historyTotalValue: { fontSize: 20, fontFamily: fonts.mono, fontWeight: 500, color: colors.sage },
-  historyRow: { display: "flex", alignItems: "center", gap: 14, padding: "10px 6px", borderBottom: `1px solid ${colors.border}`, cursor: "pointer" },
-  historyPeriod: { width: 110, flexShrink: 0, fontSize: 12, color: colors.muted, fontFamily: fonts.mono },
+  historyTotalValue: { fontSize: 24, fontFamily: fonts.serif, fontWeight: 500, color: colors.sage, fontVariantNumeric: "tabular-nums" },
+  historyRow: { display: "flex", alignItems: "center", gap: 12, padding: "12px 12px", borderBottom: `1px solid ${colors.border}`, cursor: "pointer" },
+  historyPeriod: { width: 104, flexShrink: 0, fontSize: 12, color: colors.muted, fontFamily: fonts.mono, lineHeight: 1.35 },
   historyMain: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   historyValue: { fontFamily: fonts.mono, fontSize: 13.5, flexShrink: 0, color: colors.sage },
   periodSection: { display: "flex", flexDirection: "column" },
-  periodHeading: { display: "flex", alignItems: "center", gap: 12, fontFamily: fonts.mono, fontSize: 12, color: colors.gold, marginBottom: 10 },
-  periodRule: { flex: 1, height: 1, background: colors.border },
-  row: { display: "flex", alignItems: "center", gap: 14, padding: "12px 6px", borderBottom: `1px solid ${colors.border}` },
-  rowControls: { display: "flex", alignItems: "center", minWidth: 88, flexShrink: 0 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, border: "1.5px solid", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent" },
+  periodHeading: { display: "flex", alignItems: "center", gap: 12, fontFamily: fonts.mono, fontSize: 11.5, letterSpacing: "0.06em", textTransform: "uppercase", color: colors.gold, marginBottom: 8, paddingLeft: 4 },
+  periodRule: { flex: 1, height: 1, background: "transparent" },
+  periodCard: { display: "flex", flexDirection: "column", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 14, overflow: "hidden" },
+  row: { display: "flex", alignItems: "center", gap: 12, padding: "12px 12px", borderBottom: `1px solid ${colors.border}` },
+  rowControls: { display: "flex", alignItems: "center", minWidth: 96, flexShrink: 0 },
+  checkbox: { width: 28, height: 28, borderRadius: 8, border: "1.5px solid", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", padding: 0 },
   counterControl: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
-  counterBtn: { width: 20, height: 20, borderRadius: 5, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  counterBtn: { width: 28, height: 28, borderRadius: 8, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
   counterVal: { fontFamily: fonts.mono, fontSize: 13, minWidth: 14, textAlign: "center" },
   logPopover: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
   logInput: { width: 56, background: colors.bg, border: `1px solid ${colors.gold}`, borderRadius: 6, padding: "3px 6px", color: colors.text, fontSize: 12, fontFamily: fonts.mono, boxSizing: "border-box" },
-  logBtn: { width: 20, height: 20, borderRadius: 5, border: "none", background: colors.sage, color: "#0F1216", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
-  logBtnGhost: { width: 20, height: 20, borderRadius: 5, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
-  logPartialBtn: { display: "flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
-  offerAddBtn: { display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 14, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
+  logBtn: { width: 28, height: 28, borderRadius: 8, border: "none", background: colors.sage, color: colors.onSage, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  logBtnGhost: { width: 28, height: 28, borderRadius: 8, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  logPartialBtn: { display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 15, height: 30, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
+  offerAddBtn: { display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 15, height: 30, border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, fontSize: 12, fontFamily: fonts.sans, cursor: "pointer", flexShrink: 0 },
   rowMain: { flex: 1, minWidth: 0 },
   rowTopLine: { display: "flex", alignItems: "flex-start" },
-  rowName: { fontSize: 14.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", overflowWrap: "break-word" },
+  rowName: { fontSize: 16, fontWeight: 500, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", overflowWrap: "break-word" },
   rowMeta: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, minWidth: 0 },
-  vendorTag: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, background: colors.surface2, borderRadius: 4, padding: "1px 6px" },
-  categoryTag: { fontSize: 11, color: colors.slateBlue, fontFamily: fonts.mono, background: "rgba(76,126,168,0.14)", borderRadius: 4, padding: "1px 6px" },
-  cardBadge: { display: "flex", alignItems: "flex-start", gap: 6, fontSize: 13, color: colors.muted, fontFamily: fonts.mono, minWidth: 0 },
+  vendorTag: { fontSize: 11.5, color: colors.muted, fontFamily: fonts.mono, background: colors.surface2, borderRadius: 4, padding: "2px 7px" },
+  categoryTag: { fontSize: 11.5, color: colors.slateBlue, fontFamily: fonts.mono, background: "rgba(76,126,168,0.14)", borderRadius: 4, padding: "2px 7px" },
+  cardBadge: { display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12.5, color: colors.muted, fontFamily: fonts.sans, minWidth: 0 },
   cardBadgeText: { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, flex: 1, lineHeight: 1.3, overflowWrap: "break-word" },
-  dragHandle: { display: "flex", alignItems: "center", color: colors.muted, cursor: "grab", flexShrink: 0 },
-  rowNotes: { fontSize: 12, color: colors.muted, marginTop: 3, maxWidth: 480 },
+  dragHandle: { display: "flex", alignItems: "center", justifyContent: "center", width: 24, alignSelf: "stretch", marginLeft: -6, color: colors.muted, cursor: "grab", flexShrink: 0 },
+  rowNotes: { fontSize: 13, color: colors.muted, marginTop: 3, maxWidth: 480 },
   progressTrack: { height: 3, background: colors.border, borderRadius: 2, overflow: "hidden", flex: 1 },
   progressFill: { height: "100%", borderRadius: 2 },
   rowOpenArea: { display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: "pointer" },
   rowBottomLine: { display: "flex", alignItems: "center", gap: 10, marginTop: 8 },
   rowStats: { flexShrink: 0, textAlign: "right" },
-  rowValueInline: { fontFamily: fonts.mono, fontSize: 13.5, whiteSpace: "nowrap" },
-  rowDays: { fontSize: 11, fontFamily: fonts.mono, whiteSpace: "nowrap", marginTop: 2 },
+  rowValueInline: { fontFamily: fonts.mono, fontSize: 14, whiteSpace: "nowrap" },
+  rowDays: { fontSize: 12, fontFamily: fonts.mono, whiteSpace: "nowrap", marginTop: 2 },
   rowChevron: { color: colors.muted, flexShrink: 0, transform: "rotate(-90deg)" },
   detailStatRow: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10, gap: 16 },
   detailStatLabel: { fontSize: 11, color: colors.muted, fontFamily: fonts.mono, marginBottom: 4 },
-  detailStatValue: { fontSize: 20, fontFamily: fonts.mono, fontWeight: 500, color: colors.text },
+  detailStatValue: { fontSize: 24, fontFamily: fonts.serif, fontWeight: 500, color: colors.text, fontVariantNumeric: "tabular-nums" },
   addBenefitBtn: { alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "transparent", border: `1px dashed ${colors.border2}`, color: colors.muted, borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontFamily: fonts.sans, marginTop: 6 },
   iconBtn: { color: colors.muted, cursor: "pointer" },
   empty: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "50px 20px" },
-  overlay: { position: "fixed", inset: 0, background: "rgba(10,12,15,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 },
-  modal: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 22, width: 380, maxWidth: "100%", maxHeight: "85vh", overflowY: "auto" },
+  overlay: { position: "fixed", inset: 0, background: colors.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 },
+  modal: { background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 22, width: 400, maxWidth: "100%", maxHeight: "85vh", overflowY: "auto", WebkitOverflowScrolling: "touch" },
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
-  modalTitle: { fontFamily: fonts.serif, fontSize: 19, color: colors.text },
-  modalClose: { width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", borderRadius: 8, color: colors.muted, cursor: "pointer", padding: 0, marginRight: -6 },
-  input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 11px", color: colors.text, fontSize: 14, fontFamily: fonts.sans, boxSizing: "border-box" },
+  modalTitle: { fontFamily: fonts.serif, fontSize: 21, color: colors.text },
+  modalClose: { width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", borderRadius: 8, color: colors.muted, cursor: "pointer", padding: 0, marginRight: -6 },
+  input: { width: "100%", background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "11px 12px", color: colors.text, fontSize: 16, fontFamily: fonts.sans, boxSizing: "border-box" },
   fieldError: { fontSize: 12, color: colors.roseText, marginTop: 6, fontFamily: fonts.sans },
-  btnPrimary: { background: colors.gold, color: "#181410", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
-  btnGhost: { background: "transparent", color: colors.muted, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans },
-  btnDanger: { background: colors.rose, color: "#FFFFFF", border: "none", borderRadius: 7, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
+  btnPrimary: { background: colors.gold, color: colors.onAccent, border: "none", borderRadius: 10, padding: "11px 18px", fontSize: 15, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 600 },
+  btnGhost: { background: colors.surface, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "11px 18px", fontSize: 15, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 500 },
+  btnDanger: { background: colors.rose, color: "#FFFFFF", border: "none", borderRadius: 10, padding: "11px 18px", fontSize: 15, cursor: "pointer", fontFamily: fonts.sans, fontWeight: 600 },
   templateRow: { display: "flex", justifyContent: "space-between", alignItems: "center", background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", textAlign: "left", width: "100%" },
   codeMenuCode: { fontFamily: fonts.mono, fontSize: 16, color: colors.gold, cursor: "pointer", marginBottom: 8, letterSpacing: "0.02em" },
-  codeMenuHint: { fontSize: 11.5, color: colors.muted, lineHeight: 1.4 },
+  codeMenuHint: { fontSize: 12.5, color: colors.muted, lineHeight: 1.45 },
 };
 
 const CSS_TEXT = `
@@ -2945,46 +3065,59 @@ const CSS_TEXT = `
   .lg-row-completing { transition: background 0.45s ease 0.3s; background: rgba(110,156,130,0.08); }
   @keyframes lg-fadein-up { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
   .lg-complete-msg { animation: lg-fadein-up 0.25s ease; }
-  .lg-row:hover { background: rgba(255,255,255,0.02); }
-  .lg-cardtile { transition: opacity 0.15s ease, transform 0.15s ease; }
-  .lg-cardtile:hover { transform: translateY(-2px); opacity: 1 !important; }
-  .lg-cardactions { display: flex; gap: 6px; opacity: 0.55; transition: opacity 0.15s ease; }
-  .lg-cardtile:hover .lg-cardactions, .lg-cardtile:active .lg-cardactions { opacity: 1; }
-  .lg-cardactions svg { color: rgba(244,241,234,0.8); }
-  .lg-check:hover { border-color: ${colors.gold} !important; }
-  .lg-counterbtn:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
-  .lg-logpartial:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
-  .lg-offeradd:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
-  .lg-historyrow:hover { background: rgba(255,255,255,0.03); }
-  .lg-backupbtn:hover { color: ${colors.gold} !important; background: rgba(255,255,255,0.04); }
-  .lg-detailtoggle:hover { border-color: ${colors.gold} !important; color: ${colors.gold} !important; }
-  .lg-chip:hover, .lg-addbenefit:hover, .lg-addcard:hover { border-color: ${colors.gold}; color: ${colors.text}; }
-  .lg-btn-primary:hover { filter: brightness(1.08); }
-  .lg-btn-ghost:hover { border-color: ${colors.border2}; color: ${colors.text}; }
-  .lg-btn-danger:hover { filter: brightness(1.1); }
-  .lg-template:hover { border-color: ${colors.gold}; }
+  @media (hover: hover) {
+    .lg-row:hover { background: ${colors.hover}; }
+    .lg-cardtile { transition: opacity 0.15s ease, transform 0.15s ease; }
+    .lg-cardtile:hover { transform: translateY(-2px); opacity: 1 !important; }
+    .lg-cardactions { display: flex; gap: 6px; opacity: 0.55; transition: opacity 0.15s ease; }
+    .lg-cardtile:hover .lg-cardactions, .lg-cardtile:active .lg-cardactions { opacity: 1; }
+    .lg-cardactions svg { color: rgba(244,241,234,0.8); }
+    .lg-check:hover { border-color: ${colors.gold} !important; }
+    .lg-counterbtn:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
+    .lg-logpartial:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
+    .lg-offeradd:hover { border-color: ${colors.gold} !important; color: ${colors.text} !important; }
+    .lg-historyrow:hover { background: ${colors.hover}; }
+    .lg-backupbtn:hover { color: ${colors.gold} !important; background: ${colors.hover}; }
+    .lg-detailtoggle:hover { border-color: ${colors.gold} !important; color: ${colors.gold} !important; }
+    .lg-chip:hover, .lg-addbenefit:hover, .lg-addcard:hover { border-color: ${colors.gold}; color: ${colors.text}; }
+    .lg-btn-primary:hover { filter: brightness(1.08); }
+    .lg-btn-ghost:hover { border-color: ${colors.border2}; color: ${colors.text}; }
+    .lg-btn-danger:hover { filter: brightness(1.1); }
+    .lg-template:hover { border-color: ${colors.gold}; }
+  }
+  button, .lg-row, .lg-historyrow, .lg-cardtile, .lg-tab { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  button { transition: transform 0.08s ease, opacity 0.08s ease; }
+  .lg-btn-primary:active, .lg-btn-ghost:active, .lg-btn-danger:active, .lg-chip:active, .lg-check:active, .lg-counterbtn:active, .lg-logpartial:active, .lg-offeradd:active, .lg-iconbtn:active, .lg-template:active, .lg-detailtoggle:active { transform: scale(0.96); }
+  .lg-tab:active, .lg-herosub:active { opacity: 0.6; }
+  .lg-row:active, .lg-historyrow:active { background: ${colors.hover}; }
+  .lg-card > .lg-row:last-child, .lg-card > .lg-historyrow:last-child { border-bottom: none; }
+  .lg-grabber { display: none; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: ${colors.gold} !important; }
   button:focus-visible, [role="button"]:focus-visible { outline: 2px solid ${colors.gold}; outline-offset: 2px; }
-  .lg-modalclose:hover { color: ${colors.text}; background: rgba(255,255,255,0.05); }
+  .lg-modalclose:hover { color: ${colors.text}; background: ${colors.hover}; }
   .lg-searchclear:hover { color: ${colors.text}; }
   .lg-row-droptarget { box-shadow: inset 0 2px 0 ${colors.gold}; }
   @keyframes lg-fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes lg-sheet-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
   .lg-overlay { animation: lg-fade 0.15s ease; }
+  @media (min-width: 720px) {
+    .lg-overview { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) !important; align-items: start; }
+  }
   .lg-modal { animation: lg-sheet-up 0.2s ease; }
   @media (max-width: 600px) {
     /* Modals become bottom sheets on phones: thumb-reachable, and the keyboard pushes them up
        instead of hiding a centred dialog's buttons. */
     .lg-overlay { align-items: flex-end !important; padding: 0 !important; }
-    .lg-modal { width: 100% !important; max-width: none !important; max-height: 92vh !important; border-radius: 16px 16px 0 0 !important; border-bottom: none !important; padding-bottom: calc(22px + env(safe-area-inset-bottom)) !important; }
+    .lg-modal { width: 100% !important; max-width: none !important; max-height: 92vh !important; border-radius: 18px 18px 0 0 !important; border-bottom: none !important; padding-top: 10px !important; padding-bottom: calc(22px + env(safe-area-inset-bottom)) !important; }
+    .lg-grabber { display: block; width: 36px; height: 5px; border-radius: 3px; background: ${colors.border2}; margin: 0 auto 14px; }
     /* iOS Safari zooms the page when a focused field is under 16px. */
     input, select, textarea { font-size: 16px !important; }
     .lg-loginput { width: 72px !important; }
     /* Tighter rows: the partial-log pill collapses to its icon so the name column gets the width. */
     .lg-row { gap: 10px !important; padding-left: 2px !important; padding-right: 2px !important; }
-    .lg-rowcontrols { min-width: 56px !important; }
+    .lg-rowcontrols { min-width: 66px !important; }
     .lg-logtext { display: none; }
-    .lg-logpartial { padding: 6px !important; border-radius: 50% !important; }
+    .lg-logpartial { padding: 0 !important; width: 30px; justify-content: center; border-radius: 50% !important; }
     .lg-cardbadge { font-size: 12px !important; }
     /* Card tiles: two per row instead of a fixed 200px that stacks one-per-row on phones. */
     .lg-cardtile { width: calc(50% - 5px) !important; }
@@ -3162,8 +3295,9 @@ function AuthGate() {
 
   if (!authChecked || resolvingCode) {
     return (
-      <div style={AUTH_S.wrap}>
-        <span style={{ color: colors.muted, fontFamily: fonts.mono, fontSize: 13 }}>Loading…</span>
+      <div className="lg-launch">
+        <img src="icons/icon-192.png" alt="" />
+        <span>{error || "Loading…"}</span>
       </div>
     );
   }

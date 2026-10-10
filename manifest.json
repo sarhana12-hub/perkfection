@@ -1,10 +1,12 @@
 {
+  "id": "purrkfection",
   "name": "Purrkfection",
   "short_name": "Purrkfection",
   "description": "Track every credit-card benefit and whether you've captured it this period.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#14171C",
   "theme_color": "#14171C",
@@ -13,5 +15,9 @@
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "History", "url": "./index.html#history", "description": "What you've captured this year" },
+    { "name": "Settings", "url": "./index.html#settings", "description": "Reminders, sharing and backup" }
   ]
 }
