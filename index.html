@@ -42,6 +42,8 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 }
 </script>
 
+<script src="ledger-math.js"></script>
+
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
@@ -147,6 +149,9 @@ const CATEGORIES = [
   { id: "other", label: "Other" },
 ];
 
+// How far ahead the in-app digest and the push reminders look for credits about to reset.
+const EXPIRING_LEAD_DAYS = 5;
+
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const TRACKING_MODES = [
@@ -247,109 +252,9 @@ function fmtMoneyWhole(n) {
   return `$${Math.round(num).toLocaleString()}`;
 }
 
-function getPeriodInfo(periodicity, date = new Date(), resetMonth, resetDay) {
-  const y = date.getFullYear();
-  const m = date.getMonth();
-  let key, start, end, label;
-  if (periodicity === "monthly") {
-    key = `${y}-${String(m + 1).padStart(2, "0")}`;
-    start = new Date(y, m, 1);
-    end = new Date(y, m + 1, 0);
-    label = start.toLocaleDateString(undefined, { month: "long" });
-  } else if (periodicity === "quarterly") {
-    const q = Math.floor(m / 3);
-    key = `${y}-Q${q + 1}`;
-    start = new Date(y, q * 3, 1);
-    end = new Date(y, q * 3 + 3, 0);
-    label = `Q${q + 1} ${y}`;
-  } else if (periodicity === "semiannual") {
-    const h = m < 6 ? 1 : 2;
-    key = `${y}-H${h}`;
-    start = new Date(y, h === 1 ? 0 : 6, 1);
-    end = new Date(y, h === 1 ? 6 : 12, 0);
-    label = h === 1 ? `Jan–Jun ${y}` : `Jul–Dec ${y}`;
-  } else if (resetMonth && resetDay) {
-    // Anniversary-based annual credit: runs from the most recent reset date up to (not
-    // including) the next one, rather than the calendar year.
-    const am = resetMonth - 1;
-    const thisYearReset = new Date(y, am, resetDay);
-    const startYear = date < thisYearReset ? y - 1 : y;
-    start = new Date(startYear, am, resetDay);
-    end = new Date(startYear + 1, am, resetDay - 1);
-    key = `${startYear}-${String(resetMonth).padStart(2, "0")}-${String(resetDay).padStart(2, "0")}`;
-    label = `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
-  } else {
-    key = `${y}`;
-    start = new Date(y, 0, 1);
-    end = new Date(y, 11, 31);
-    label = `${y}`;
-  }
-  const total = end - start;
-  const elapsed = date - start;
-  const daysLeft = Math.max(0, Math.ceil((end - date) / (1000 * 60 * 60 * 24)));
-  return { key, start, end, label, fracElapsed: Math.min(1, Math.max(0, elapsed / total)), daysLeft };
-}
-
-// Turns a stored period key (e.g. "2026-03", "2026-Q1", "2026-H1", "2026", or the
-// anniversary-style "2026-03-15") back into a readable label and a sortable date, for
-// browsing past periods in the History view. The shape is read off the key itself rather
-// than the benefit's current periodicity, so entries logged before a benefit's cadence was
-// edited still get a sensible label instead of "Invalid Date".
-function parsePeriodKey(periodicity, key) {
-  const k = String(key);
-  const year = Number(k.slice(0, 4));
-  let m;
-  if ((m = /^\d{4}-Q(\d)$/.exec(k))) {
-    const q = Number(m[1]);
-    return { label: `Q${q} ${year}`, sortDate: new Date(year, (q - 1) * 3, 1) };
-  }
-  if ((m = /^\d{4}-H(\d)$/.exec(k))) {
-    const h = Number(m[1]);
-    return { label: h === 1 ? `Jan–Jun ${year}` : `Jul–Dec ${year}`, sortDate: new Date(year, h === 1 ? 0 : 6, 1) };
-  }
-  if ((m = /^\d{4}-(\d{2})$/.exec(k))) {
-    const mo = Number(m[1]);
-    return { label: new Date(year, mo - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }), sortDate: new Date(year, mo - 1, 1) };
-  }
-  if ((m = /^\d{4}-(\d{2})-(\d{2})$/.exec(k))) {
-    // Anniversary-based annual credit: "YYYY-MM-DD" marks the start of that credit's cycle.
-    const am = Number(m[1]) - 1;
-    const ad = Number(m[2]);
-    const start = new Date(year, am, ad);
-    const end = new Date(year + 1, am, ad - 1);
-    return {
-      label: `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`,
-      sortDate: start,
-    };
-  }
-  return { label: `${year}`, sortDate: new Date(year, 0, 1) };
-}
-
-// Redemption + completion are derived from the benefit's current definition, not a frozen
-// snapshot, so editing a credit's value later doesn't leave stale numbers in past periods.
-function redeemedValue(benefit, u) {
-  const mode = benefit.trackingMode || "single";
-  const cap = Number(benefit.value) || 0;
-  if (!u) return 0;
-  if (mode === "offer") return Number(u.amount) || 0; // no cap — whatever's been logged is the value
-  if (mode === "cumulative") return Math.min(Number(u.amount) || 0, cap);
-  if (mode === "counter") return (Number(u.count) || 0) * cap;
-  return u.used || u.done ? cap : 0;
-}
-
-function isBenefitDone(benefit, u) {
-  const mode = benefit.trackingMode || "single";
-  if (!u) return false;
-  if (mode === "offer") return false; // open-ended — never "complete"
-  if (mode === "cumulative") {
-    const cap = Number(benefit.value) || 0;
-    return cap > 0 && (Number(u.amount) || 0) >= cap;
-  }
-  if (mode === "counter") {
-    return Number(benefit.targetCount) > 0 && (Number(u.count) || 0) >= Number(benefit.targetCount);
-  }
-  return !!(u.used || u.done);
-}
+// Period math, redemption and expiry rules live in ledger-math.js, shared with the
+// reminder sender (scripts/send-reminders.mjs) so both agree on what "expiring" means.
+const { getPeriodInfo, parsePeriodKey, redeemedValue, isBenefitDone, findExpiringCredits } = window.LedgerMath;
 
 function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitchLedger }) {
   const [cards, setCards] = useState([]);
@@ -393,6 +298,12 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   // can't overwrite each other with stale data. `meta` carries document fields this
   // component doesn't edit (createdAt) so a full write doesn't silently drop them.
   const stateRef = useRef({ cards: [], benefits: [], usage: {}, ledgerName: DEFAULT_LEDGER_NAME, meta: {} });
+  const [pushEntries, setPushEntries] = useState({}); // push subscriptions stored on the ledger, keyed by device id
+  const [dismissedRecap, setDismissedRecap] = useState(() => { try { return localStorage.getItem(`perkfection:recap:${ledgerCode}`) || ""; } catch (e) { return ""; } });
+  const dismissRecap = (key) => {
+    setDismissedRecap(key);
+    try { localStorage.setItem(`perkfection:recap:${ledgerCode}`, key); } catch (e) {}
+  };
 
   // Live shared data: subscribes to this instance's Firestore document and mirrors it
   // into local state; every write below re-sends the full {cards, benefits, usage}
@@ -401,19 +312,19 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     const unsub = instanceRef.onSnapshot(
       (snap) => {
         const data = snap.data() || { cards: [], benefits: [], usage: {} };
-        const meta = {};
-        if (data.createdAt !== undefined) meta.createdAt = data.createdAt;
+        const { cards: dCards, benefits: dBenefits, usage: dUsage, ledgerName: dName, ...meta } = data;
         stateRef.current = {
-          cards: data.cards || [],
-          benefits: data.benefits || [],
-          usage: data.usage || {},
-          ledgerName: data.ledgerName || DEFAULT_LEDGER_NAME,
+          cards: dCards || [],
+          benefits: dBenefits || [],
+          usage: dUsage || {},
+          ledgerName: dName || DEFAULT_LEDGER_NAME,
           meta,
         };
         setCards(stateRef.current.cards);
         setBenefits(stateRef.current.benefits);
         setUsage(stateRef.current.usage);
         setLedgerName(stateRef.current.ledgerName);
+        setPushEntries(meta.push || {});
         setLoaded(true);
       },
       () => {
@@ -473,6 +384,13 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
         .catch(() => persist({ ...cur.meta, cards: cur.cards, benefits: cur.benefits, usage: nextUsage, ledgerName: cur.ledgerName }));
     },
     [instanceRef, persist]
+  );
+
+  // Push subscriptions live on the ledger document (a `push` map keyed by device) so the
+  // reminder sender can find everyone who wants a nudge for this ledger's credits.
+  const savePushEntry = useCallback(
+    (id, entry) => instanceRef.update(new firebase.firestore.FieldPath("push", id), entry ? entry : firebase.firestore.FieldValue.delete()),
+    [instanceRef]
   );
 
   // Every usage entry records when and by whom it was logged — the display name people
@@ -759,17 +677,30 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     });
 
     let monthlyPotential = 0;
-    // Everything with a fixed dollar cap, multiplied out across the calendar year — the
-    // denominator for "are we on pace", so counters and open-ended offers don't count.
-    let annualPotential = 0;
-    const PERIODS_PER_YEAR = { monthly: 12, quarterly: 4, semiannual: 2, annual: 1 };
     scopedBenefits.forEach((b) => {
       const mode = b.trackingMode || "single";
-      if (mode !== "single" && mode !== "cumulative") return;
-      const cap = Number(b.value) || 0;
-      if (b.periodicity === "monthly") monthlyPotential += cap;
-      annualPotential += cap * (PERIODS_PER_YEAR[b.periodicity] || 1);
+      if (b.periodicity === "monthly" && (mode === "single" || mode === "cumulative")) {
+        monthlyPotential += Number(b.value) || 0;
+      }
     });
+
+    // Last month's report card, for the recap shown during the first days of a new month:
+    // what the monthly-cadence credits were worth, how much was captured, and which ones
+    // reset unused. Scoped like everything else so switching cards updates it.
+    const lastMonthDate = new Date(year, now.getMonth() - 1, 1);
+    const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
+    const lastMonth = { key: lastMonthKey, label: lastMonthDate.toLocaleDateString(undefined, { month: "long" }), captured: 0, potential: 0, missed: [] };
+    scopedBenefits.forEach((b) => {
+      const mode = b.trackingMode || "single";
+      if (b.periodicity !== "monthly" || (mode !== "single" && mode !== "cumulative")) return;
+      const cap = Number(b.value) || 0;
+      const u = usage[`${b.id}:${lastMonthKey}`];
+      const got = redeemedValue(b, u);
+      lastMonth.potential += cap;
+      lastMonth.captured += got;
+      if (cap - got > 0) lastMonth.missed.push({ benefit: b, remaining: cap - got });
+    });
+    lastMonth.missed.sort((a, b) => b.remaining - a.remaining);
 
     const capturedByBenefit = Object.entries(capturedByBenefitMap)
       .map(([benefitId, total]) => ({ benefit: benefitsById[benefitId], total }))
@@ -787,20 +718,13 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
     // lose), just gathered into one ranked list instead of requiring a scroll to notice.
     // Scoped only by card selection (like capturedByCategory above) so switching category
     // tabs can't hide an otherwise-urgent credit from the digest.
-    const expiringSoon = [];
-    cardScopedBenefits.forEach((b) => {
+    const expiringSoon = findExpiringCredits(cardScopedBenefits, usage, now, EXPIRING_LEAD_DAYS);
+    scopedBenefits.forEach((b) => {
       const mode = b.trackingMode || "single";
       const info = getPeriodInfo(b.periodicity, now, b.resetMonth, b.resetDay);
       const u = usage[`${b.id}:${info.key}`];
       const cap = Number(b.value) || 0;
-      const redeemed = redeemedValue(b, u);
-      const currentRemaining = isBenefitDone(b, u) ? 0 : Math.max(0, cap - redeemed);
-
-      if (mode !== "counter" && mode !== "offer" && info.daysLeft <= 5 && currentRemaining > 0) {
-        expiringSoon.push({ benefit: b, remaining: currentRemaining, daysLeft: info.daysLeft });
-      }
-
-      if (!benefitsById[b.id]) return; // category-filtered from here on, for remainingPotential only
+      const currentRemaining = isBenefitDone(b, u) ? 0 : Math.max(0, cap - redeemedValue(b, u));
 
       let futurePeriods = 0;
       if (mode === "single" || mode === "cumulative") {
@@ -814,11 +738,9 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
       remainingPotential += remainingForYear;
     });
 
-    expiringSoon.sort((a, b) => b.remaining - a.remaining);
-
     const scopedCards = isAllSelected ? cards : cards.filter((c) => selectedCardIds.has(c.id));
     const totalAnnualFees = scopedCards.reduce((s, c) => s + (Number(c.annualFee) || 0), 0);
-    return { capturedThisYear, capturedThisMonth, capturedThisMonthCount, monthlyPotential, annualPotential, remainingPotential, capturedByBenefit, capturedByCategory, capturedByCard, totalAnnualFees, expiringSoon };
+    return { capturedThisYear, capturedThisMonth, capturedThisMonthCount, monthlyPotential, remainingPotential, capturedByBenefit, capturedByCategory, capturedByCard, totalAnnualFees, expiringSoon, lastMonth };
   }, [usage, benefits, cards, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   // A playful progress mascot for the current month against what's actually capturable
@@ -903,7 +825,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
   }, [usage, benefits, cards, historyYear, selectedCardIds, isAllSelected, selectedCategoryIds, isAllCategoriesSelected]);
 
   const historyTotal = useMemo(() => historyEntries.reduce((s, e) => s + e.redeemed, 0), [historyEntries]);
-  const yearFrac = getPeriodInfo("annual").fracElapsed;
 
   if (!loaded) {
     return (
@@ -1025,26 +946,6 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
               : `${fmtMoneyPlain(stats.totalAnnualFees - stats.capturedThisYear)} short of fees`
             : `${new Date().getFullYear()}`}
         </div>
-        {stats.annualPotential > 0 && (() => {
-          // Captured-so-far against everything capturable this year, with a tick at how far
-          // through the year we are: fill ahead of the tick means on pace, behind means
-          // credits are quietly going unused.
-          const capPct = Math.min(1, stats.capturedThisYear / stats.annualPotential);
-          const onPace = capPct >= yearFrac - 0.05;
-          const paceColor = capPct >= 1 ? S.colors.sage : onPace ? S.colors.sage : S.colors.amber;
-          return (
-            <div style={S.paceWrap}>
-              <div style={S.paceTrack}>
-                <div style={{ ...S.paceFill, width: `${capPct * 100}%`, background: paceColor }} />
-                <div style={{ ...S.paceMarker, left: `${yearFrac * 100}%` }} title={`${Math.round(yearFrac * 100)}% of the year elapsed`} />
-              </div>
-              <div style={S.paceCaption}>
-                <span style={{ color: paceColor }}>{capPct >= 1 ? "Maxed out" : onPace ? "On pace" : "Behind pace"}</span>
-                {` · ${Math.round(capPct * 100)}% of ${fmtMoneyWhole(stats.annualPotential)} possible · ${Math.round(yearFrac * 100)}% of the year gone`}
-              </div>
-            </div>
-          );
-        })()}
         {showCapturedDetail && (
           <div style={S.capturedDetailList}>
             {CATEGORIES.map((c) => {
@@ -1104,7 +1005,7 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           <div style={S.expiringHeader}>
             <Clock size={15} color={S.colors.roseText} />
             <span style={S.expiringHeaderText}>
-              {stats.expiringSoon.length} credit{stats.expiringSoon.length === 1 ? "" : "s"} worth {fmtMoney(stats.expiringSoon.reduce((s, e) => s + e.remaining, 0))} expiring in the next 5 days
+              {stats.expiringSoon.length} credit{stats.expiringSoon.length === 1 ? "" : "s"} worth {fmtMoney(stats.expiringSoon.reduce((s, e) => s + e.remaining, 0))} expiring in the next {EXPIRING_LEAD_DAYS} days
             </span>
           </div>
           <div style={S.expiringList}>
@@ -1135,6 +1036,45 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
           </div>
         </div>
       )}
+
+      {(() => {
+        const r = stats.lastMonth;
+        const show = new Date().getDate() <= 10 && r.potential > 0 && dismissedRecap !== r.key;
+        if (!show) return null;
+        const pct = r.captured / r.potential;
+        const left = r.potential - r.captured;
+        const clean = left <= 0;
+        return (
+          <div style={S.recapCard}>
+            <div style={S.recapHeader}>
+              <span style={S.recapTitle}>{r.label} recap{cardScopeSuffix}</span>
+              <button type="button" className="lg-modalclose" style={{ ...S.modalClose, width: 26, height: 26, marginRight: -4 }} onClick={() => dismissRecap(r.key)} aria-label="Dismiss recap">
+                <X size={14} />
+              </button>
+            </div>
+            <div style={S.recapValue}>
+              {fmtMoneyPlain(r.captured)} <span style={S.recapOf}>of {fmtMoneyPlain(r.potential)} monthly credits</span>
+            </div>
+            <div style={S.recapBar}>
+              <div style={{ ...S.recapBarFill, width: `${Math.min(100, pct * 100)}%`, background: clean ? S.colors.sage : pct >= 0.66 ? S.colors.gold : S.colors.amber }} />
+            </div>
+            {clean ? (
+              <div style={S.recapCaption}>Clean sweep — every monthly credit got used. Purrfect.</div>
+            ) : (
+              <div style={S.recapCaption}>
+                {fmtMoneyPlain(left)} reset unused across {r.missed.length} credit{r.missed.length === 1 ? "" : "s"}
+                {r.missed.length > 0 && (
+                  <>: {r.missed.slice(0, 3).map((m) => `${m.benefit.name} (${fmtMoneyPlain(m.remaining)})`).join(", ")}{r.missed.length > 3 ? ` and ${r.missed.length - 3} more` : ""}.</>
+                )}
+                {" "}
+                <button type="button" className="lg-linkbtn" style={S.linkBtn} onClick={() => setViewDate(new Date(Number(r.key.slice(0, 4)), Number(r.key.slice(5, 7)) - 1, 1))}>
+                  Forgot to log something? Backfill {r.label}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div style={S.mascotRow}>
         <ProgressCat
@@ -1411,6 +1351,8 @@ function BenefitsLedger({ instanceRef, ledgerCode, userLabel, onSignOut, onSwitc
 
       {showSettings && (
         <SettingsModal
+          pushEntries={pushEntries}
+          onSavePush={savePushEntry}
           ledgerName={ledgerName}
           onRenameSave={(name) => commit({ ledgerName: name })}
           ledgerCode={ledgerCode}
@@ -2103,7 +2045,7 @@ function FilterSortModal({
   );
 }
 
-function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExport, onImportClick, onSwitchLedger, onSignOut, onClose }) {
+function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, pushEntries, onSavePush, onExport, onImportClick, onSwitchLedger, onSignOut, onClose }) {
   const [nameDraft, setNameDraft] = useState(ledgerName);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [urlCopyFeedback, setUrlCopyFeedback] = useState(false);
@@ -2171,6 +2113,10 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
         )}
       </Field>
 
+      <Field label="Reminders">
+        <ReminderSettings pushEntries={pushEntries} onSavePush={onSavePush} userLabel={userLabel} />
+      </Field>
+
       <Field label="Backup">
         <div style={{ display: "flex", gap: 10 }}>
           <button type="button" className="lg-btn-ghost" style={{ ...S.btnGhost, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={onExport}>
@@ -2190,6 +2136,159 @@ function SettingsModal({ ledgerName, onRenameSave, ledgerCode, userLabel, onExpo
         </div>
       </Field>
     </Modal>
+  );
+}
+
+/* ---------------- Push reminders ---------------- */
+// Public half of the VAPID key pair the reminder sender signs with. The private half lives
+// only in the repository's GitHub Actions secrets (see README). Replace both together.
+const VAPID_PUBLIC_KEY = "BOgL-WuGGNjN-F54kOPvZuD2MGZOsS80XOJAMk2T2tMEM2zAQQXHZjsEEvfGQHNQJfTMAaEh9sRbLbpbSxSt15g";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+// Stable id for a subscription endpoint, used as the key in the ledger's `push` map.
+async function endpointId(endpoint) {
+  try {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint));
+    return Array.from(new Uint8Array(buf)).slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch (e) {
+    let h = 5381;
+    for (let i = 0; i < endpoint.length; i++) h = ((h << 5) + h + endpoint.charCodeAt(i)) >>> 0;
+    return "h" + h.toString(16);
+  }
+}
+
+const LEAD_DAY_OPTIONS = [3, 5, 7];
+
+function ReminderSettings({ pushEntries, onSavePush, userLabel }) {
+  const supported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const configured = VAPID_PUBLIC_KEY && !VAPID_PUBLIC_KEY.startsWith("__");
+  const isIos = /iP(hone|ad|od)/.test(navigator.userAgent);
+  const standalone = window.matchMedia && window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const [sub, setSub] = useState(undefined); // undefined = still checking, null = none
+  const [subId, setSubId] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!supported) { setSub(null); return; }
+    let cancelled = false;
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then(async (existing) => {
+        if (cancelled) return;
+        setSub(existing || null);
+        if (existing) setSubId(await endpointId(existing.endpoint));
+      })
+      .catch(() => { if (!cancelled) setSub(null); });
+    return () => { cancelled = true; };
+  }, [supported]);
+
+  const entry = subId ? pushEntries?.[subId] : null;
+  const leadDays = entry?.leadDays || EXPIRING_LEAD_DAYS;
+
+  const enable = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setError("Notifications are blocked for this site — allow them in your browser settings and try again.");
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+      const id = await endpointId(s.endpoint);
+      const json = s.toJSON();
+      await onSavePush(id, {
+        endpoint: json.endpoint,
+        keys: json.keys,
+        name: userLabel || "",
+        leadDays: EXPIRING_LEAD_DAYS,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        createdAt: new Date().toISOString(),
+        ua: navigator.userAgent.slice(0, 120),
+      });
+      setSub(s);
+      setSubId(id);
+    } catch (e) {
+      setError("Couldn't turn on reminders on this device. " + (e && e.message ? e.message : ""));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disable = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (sub) await sub.unsubscribe().catch(() => {});
+      if (subId) await onSavePush(subId, null);
+      setSub(null);
+      setSubId(null);
+    } catch (e) {
+      setError("Couldn't turn reminders off cleanly — try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setLead = (days) => {
+    if (!subId || !entry) return;
+    onSavePush(subId, { ...entry, leadDays: days }).catch(() => setError("Couldn't save that — try again."));
+  };
+
+  const hint = "A push notification on this device when a credit with money still on it is about to reset.";
+
+  if (!supported) {
+    return (
+      <div style={S.codeMenuHint}>
+        {hint}{" "}
+        {isIos && !standalone
+          ? "On iPhone, add Purrkfection to your Home Screen first (Share → Add to Home Screen), then open it from there to turn reminders on."
+          : "This browser doesn't support push notifications."}
+      </div>
+    );
+  }
+  if (!configured) {
+    return <div style={S.codeMenuHint}>{hint} Reminders aren't set up for this deployment yet — see the README for the two secrets it needs.</div>;
+  }
+  if (sub === undefined) {
+    return <div style={S.codeMenuHint}>Checking this device…</div>;
+  }
+  const on = !!sub && !!entry;
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button type="button" className={on ? "lg-btn-ghost" : "lg-btn-primary"} style={{ ...(on ? S.btnGhost : S.btnPrimary), flex: "1 1 auto" }} onClick={on ? disable : enable} disabled={busy}>
+          {busy ? "One moment…" : on ? "Turn off on this device" : "Turn on reminders on this device"}
+        </button>
+        {on && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: S.colors.muted }}>
+            Remind me
+            <select style={{ ...S.sortSelect, padding: "6px 8px" }} value={leadDays} onChange={(e) => setLead(Number(e.target.value))} aria-label="Days of notice">
+              {LEAD_DAY_OPTIONS.map((d) => (
+                <option key={d} value={d}>{d} days</option>
+              ))}
+            </select>
+            before
+          </label>
+        )}
+      </div>
+      <div style={{ ...S.codeMenuHint, marginTop: 8 }}>
+        {hint}{" "}
+        {on
+          ? `Once a day, only when something is expiring${entry?.name ? ` · set up as ${entry.name}` : ""}.`
+          : "Each phone or computer opts in separately."}
+        {Object.keys(pushEntries || {}).length > 0 && !on ? ` ${Object.keys(pushEntries).length} other device${Object.keys(pushEntries).length === 1 ? "" : "s"} already get reminders for this ledger.` : ""}
+      </div>
+      {error && <div style={S.fieldError}>{error}</div>}
+    </div>
   );
 }
 
@@ -2713,6 +2812,15 @@ const S = {
   expiringList: { marginTop: 10, display: "flex", flexDirection: "column", gap: 2 },
   expiringRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "7px 4px", cursor: "pointer", borderRadius: 6 },
   mascotRow: { display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" },
+  recapCard: { background: colors.surface, border: `1px solid ${colors.gold}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 },
+  recapHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  recapTitle: { fontFamily: fonts.mono, fontSize: 11, color: colors.gold, letterSpacing: "0.03em", textTransform: "uppercase" },
+  recapValue: { fontFamily: fonts.serif, fontSize: 20, color: colors.text, marginTop: 4 },
+  recapOf: { fontSize: 13, color: colors.muted, fontFamily: fonts.sans },
+  recapBar: { height: 4, borderRadius: 2, background: colors.border, overflow: "hidden", marginTop: 8 },
+  recapBarFill: { height: "100%", borderRadius: 2 },
+  recapCaption: { fontSize: 12.5, color: colors.muted, marginTop: 8, lineHeight: 1.5 },
+  linkBtn: { background: "transparent", border: "none", padding: 0, color: colors.gold, fontSize: "inherit", fontFamily: "inherit", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 },
   mascotCard: { flex: "1 1 220px", display: "flex", gap: 12, alignItems: "center", background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 12, padding: "12px 14px" },
   mascotIconWrap: { flexShrink: 0, width: 44, height: 44 },
   mascotTitle: { fontFamily: fonts.mono, fontSize: 11, color: colors.muted, letterSpacing: "0.03em", textTransform: "uppercase" },
@@ -2730,11 +2838,6 @@ const S = {
   heroTopRow: { display: "flex", alignItems: "center", gap: 8 },
   heroValue: { fontSize: 48, lineHeight: 1.05, fontFamily: fonts.mono, fontWeight: 500, color: colors.sage },
   heroSub: { fontSize: 13, color: colors.muted, marginTop: 8 },
-  paceWrap: { marginTop: 14 },
-  paceTrack: { position: "relative", height: 6, borderRadius: 3, background: colors.border, overflow: "visible" },
-  paceFill: { height: "100%", borderRadius: 3, transition: "width 0.5s ease, background 0.4s ease" },
-  paceMarker: { position: "absolute", top: -3, width: 2, height: 12, marginLeft: -1, background: colors.text, opacity: 0.7, borderRadius: 1 },
-  paceCaption: { fontSize: 11.5, color: colors.muted, fontFamily: fonts.mono, marginTop: 8, lineHeight: 1.4 },
   detailToggleBtn: { width: 30, height: 30, borderRadius: "50%", border: `1px solid ${colors.border}`, background: "transparent", color: colors.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 6 },
   capturedDetailList: { display: "flex", flexDirection: "column", marginTop: 16, borderTop: `1px solid ${colors.border}`, paddingTop: 8 },
   capturedDetailRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "8px 2px", borderBottom: `1px solid ${colors.border}` },

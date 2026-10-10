@@ -1,5 +1,5 @@
-const CACHE = 'perkfection-v2';
-const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'perkfection-v3';
+const SHELL = ['./', './index.html', './ledger-math.js', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 // Only the app shell and the static libraries it loads are worth caching. Firestore's
 // long-polling channel and auth endpoints are live streams, not assets — caching them
@@ -35,5 +35,34 @@ self.addEventListener('fetch', (e) => {
       }
       return res;
     }).catch(() => caches.match(e.request, { ignoreSearch: url.origin === self.location.origin }).then((hit) => hit || Response.error()))
+  );
+});
+
+// Push reminders, sent by scripts/send-reminders.mjs. The payload is JSON:
+// { title, body, url, tag } — tag collapses repeat reminders into one notification.
+self.addEventListener('push', (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: e.data ? e.data.text() : '' }; }
+  const title = data.title || 'Credits expiring soon';
+  const options = {
+    body: data.body || '',
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag: data.tag || 'perkfection-expiring',
+    renotify: true,
+    data: { url: data.url || './' },
+  };
+  e.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = new URL(e.notification.data && e.notification.data.url ? e.notification.data.url : './', self.location.href).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      const existing = wins.find((w) => w.url.startsWith(self.registration.scope));
+      if (existing) return existing.focus();
+      return self.clients.openWindow(target);
+    })
   );
 });

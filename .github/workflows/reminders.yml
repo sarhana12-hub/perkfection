@@ -1,0 +1,33 @@
+# Sends a push notification to every device that opted in, listing the credits on its
+# ledger that are about to reset with money still unused. Runs once a day; the sender
+# itself makes sure a device hears at most once per day.
+name: Expiring-credit reminders
+
+on:
+  schedule:
+    - cron: "0 15 * * *" # 15:00 UTC daily (8am Pacific / 11am Eastern)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print what would be sent without sending"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/send-reminders.mjs ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT || 'mailto:owner@example.com' }}
+          APP_URL: ${{ vars.APP_URL || '' }}
