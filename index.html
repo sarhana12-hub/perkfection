@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Fixed scale, like a native app: no pinch-zoom, and no "zoom in when a field is tapped"
+     (which a Home Screen app never undoes). iOS still honours its accessibility zoom. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Purrkfection</title>
 <meta name="description" content="Track every credit-card benefit and whether you've captured it this period.">
 <link rel="manifest" href="manifest.json">
@@ -64,7 +66,7 @@
     color-scheme: light;
   }
   *{box-sizing:border-box;}
-  html,body{ margin:0; padding:0; background:var(--bg); }
+  html,body{ margin:0; padding:0; background:var(--bg); overflow-x:clip; width:100%; }
   body{ font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; color: var(--text); -webkit-text-size-adjust: 100%; touch-action: manipulation; }
   /* Splash-matching launch state: the icon tile centred on the background, so the hand-off
      from the iOS launch image to the live app is seamless. */
